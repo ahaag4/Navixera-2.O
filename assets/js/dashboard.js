@@ -55,7 +55,7 @@ export async function initializeDashboard() {
           window.location.href = "school-tran-dash.html";
           break;
         case "company":
-          window.location.href = "comadmin.html";
+          window.location.href = "public-tran-admin.html";
           break;
         case "super-admin":
           window.location.href = "superadmin.html";
