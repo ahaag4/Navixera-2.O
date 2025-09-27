@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard | Smart Tracker</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to right, #1e3a8a, #2563eb);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.2rem 2rem;
+      background-color: rgba(0, 0, 0, 0.15);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      animation: fadeInLeft 0.8s ease forwards;
+    }
+
+    header button {
+      padding: 0.5rem 1rem;
+      background-color: #ffffff;
+      color: #1e3a8a;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      animation: fadeInRight 0.8s ease forwards;
+    }
+
+    header button:hover {
+      background-color: #dbeafe;
+    }
+
+    main#dashboard {
+      flex-grow: 1;
+      padding: 2rem;
+      display: grid;
+      gap: 2rem;
+      animation: fadeInUp 0.9s ease forwards;
+    }
+
+    .dashboard-card {
+      background-color: white;
+      color: #1e3a8a;
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      transition: transform 0.3s ease;
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .dashboard-card h2 {
+      margin-bottom: 1rem;
+      font-size: 1.4rem;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInLeft {
+      from { opacity: 0; transform: translateX(-40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes fadeInRight {
+      from { opacity: 0; transform: translateX(40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+
+      main#dashboard {
+        padding: 1rem;
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📊 Welcome to Your Dashboard</h1>
+    <button onclick="logout()">Logout</button>
+  </header>
+
+  <main id="dashboard">
+    <!-- Role-specific dashboard elements will be loaded dynamically -->
+    <!-- Placeholder while JS loads -->
+    <div class="dashboard-card">
+      <h2>Loading dashboard...</h2>
+      <p>Your personalized content will appear shortly.</p>
+    </div>
+  </main>
+
+  <!-- Script to load dashboard data -->
+  <script type="module">
+    import { initializeDashboard } from "/assets/js/dashboard.js";
+    document.addEventListener("DOMContentLoaded", initializeDashboard);
+  </script>
+
+</body>
+</html>
