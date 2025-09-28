@@ -638,7 +638,7 @@ auth.onAuthStateChanged(async user => {
     const snap = await db.ref(`users/${uid}`).once('value');
     const me = snap.val();
     if (!me) { showToast('User record missing', 'danger'); auth.signOut(); return; }
-    if (me.role !== 'company') { showToast('Unauthorized (not company)', 'danger'); auth.signOut(); return; }
+    if (me.role !== 'manager') { showToast('Unauthorized (not company)', 'danger'); auth.signOut(); return; }
     if (!me.approved) { showToast('Not approved yet', 'warning'); auth.signOut(); return; }
     companyName = me.companyName || 'default';
     currentUserEl.textContent = `${me.email || user.email} (${companyName})`;
