@@ -54,10 +54,6 @@
     buyTicketBtn: document.getElementById('buyTicketBtn'),
     ticketBusSelect: document.getElementById('ticketBusSelect'),
     payTicketBtn: document.getElementById('payTicketBtn'),
-    signInBtn: document.getElementById('signInBtn'),
-    signUpBtn: document.getElementById('signUpBtn'),
-    email: document.getElementById('email'),
-    password: document.getElementById('password'),
     profileName: document.getElementById('profileName'),
     profileEmail: document.getElementById('profileEmail'),
     saveProfileBtn: document.getElementById('saveProfileBtn'),
@@ -160,28 +156,28 @@
       safetyAlert: 'Alerte de sécurité',
       chat: 'Chat'
     },
-    // Add translations for other languages similarly. For brevity, using English as placeholder for others
-    as: { ...languages.en }, // Assamese
-    bn: { ...languages.en }, // Bengali
-    gu: { ...languages.en }, // Gujarati
-    kn: { ...languages.en }, // Kannada
-    ks: { ...languages.en }, // Kashmiri
-    kok: { ...languages.en }, // Konkani
-    ml: { ...languages.en }, // Malayalam
-    mni: { ...languages.en }, // Manipuri
-    mr: { ...languages.en }, // Marathi
-    ne: { ...languages.en }, // Nepali
-    or: { ...languages.en }, // Odia
-    pa: { ...languages.en }, // Punjabi
-    sa: { ...languages.en }, // Sanskrit
-    sd: { ...languages.en }, // Sindhi
-    ta: { ...languages.en }, // Tamil
-    te: { ...languages.en }, // Telugu
-    ur: { ...languages.en }, // Urdu
-    brx: { ...languages.en }, // Bodo
-    sat: { ...languages.en }, // Santhali
-    mai: { ...languages.en }, // Maithili
-    doi: { ...languages.en } // Dogri
+    // Placeholder for other languages
+    as: { ...languages.en },
+    bn: { ...languages.en },
+    gu: { ...languages.en },
+    kn: { ...languages.en },
+    ks: { ...languages.en },
+    kok: { ...languages.en },
+    ml: { ...languages.en },
+    mni: { ...languages.en },
+    mr: { ...languages.en },
+    ne: { ...languages.en },
+    or: { ...languages.en },
+    pa: { ...languages.en },
+    sa: { ...languages.en },
+    sd: { ...languages.en },
+    ta: { ...languages.en },
+    te: { ...languages.en },
+    ur: { ...languages.en },
+    brx: { ...languages.en },
+    sat: { ...languages.en },
+    mai: { ...languages.en },
+    doi: { ...languages.en }
   };
   let currentLang = 'en';
 
@@ -326,7 +322,6 @@
           setTimeout(() => userLocationMarker.openPopup(), 1000);
           findNearestBusStops();
           detectLanguageByLocation(latitude, longitude);
-          fetchWeather(latitude, longitude);
           resolve();
         },
         (err) => {
@@ -336,17 +331,6 @@
         { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
       );
     });
-  };
-
-  const fetchWeather = async (lat, lon) => {
-    const apiKey = 'your_openweather_api_key'; // Replace with real API key
-    try {
-      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`);
-      const data = await response.json();
-      showToast(`Current weather: ${data.weather[0].description}, ${data.main.temp}°C`, 'info');
-    } catch (e) {
-      console.error('Weather fetch error', e);
-    }
   };
 
   const detectLanguageByLocation = async (lat, lon) => {
@@ -361,13 +345,13 @@
   };
 
   const updateLanguage = () => {
-    document.title = languages[currentLang].title || languages.en.title;
+    document.title = languages[currentLang].title;
     // Update other texts dynamically
-    document.querySelector('.search-panel h5').textContent = languages[currentLang].findRide || languages.en.findRide;
-    document.querySelector('label[for="searchVehicle"]').textContent = languages[currentLang].vehicleNumber || languages.en.vehicleNumber;
-    document.querySelector('label[for="searchRouteFrom"]').textContent = languages[currentLang].routePlanner || languages.en.routePlanner;
-    document.querySelector('.search-group label.fw-medium').textContent = languages[currentLang].busAlerts || languages.en.busAlerts;
-    // Add more as needed for other elements
+    document.querySelector('.search-panel h5').textContent = languages[currentLang].findRide;
+    document.querySelector('label[for="searchVehicle"]').textContent = languages[currentLang].vehicleNumber;
+    document.querySelector('label[for="searchRouteFrom"]').textContent = languages[currentLang].routePlanner;
+    document.querySelector('.search-group label.fw-medium').textContent = languages[currentLang].busAlerts;
+    // Add more as needed
   };
 
   const findNearestBusStops = () => {
@@ -657,28 +641,6 @@
     }
   };
 
-  const signIn = () => {
-    const email = dom.email.value;
-    const password = dom.password.value;
-    auth.signInWithEmailAndPassword(email, password)
-      .then(() => {
-        bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-        showToast('Logged in successfully', 'success');
-      })
-      .catch(err => showToast(err.message, 'danger'));
-  };
-
-  const signUp = () => {
-    const email = dom.email.value;
-    const password = dom.password.value;
-    auth.createUserWithEmailAndPassword(email, password)
-      .then(() => {
-        bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-        showToast('Account created successfully', 'success');
-      })
-      .catch(err => showToast(err.message, 'danger'));
-  };
-
   const logout = () => {
     auth.signOut().then(() => showToast('Logged out', 'info'));
   };
@@ -847,6 +809,7 @@
       userLocation: userLocation
     }).then(() => {
       showToast('Driver notified about your lost bag.', 'success');
+      // hide modal if using bootstrap modal with id lostBagModal
       const modalEl = document.getElementById('lostBagModal');
       if (modalEl) {
         const modal = bootstrap.Modal.getInstance(modalEl);
@@ -899,14 +862,14 @@
       if (result.error) {
         showToast(result.error.message, 'danger');
       }
+      const newPoints = (userData.points || 0) - pointsToUse + 20; // +20 for purchase
+      const history = userData.history || [];
+      history.push({ type: 'Ticket Purchase', details: `From ${from} to ${to} on bus ${bus}`, timestamp: Date.now() });
+      db.ref(`users/${currentUser.uid}`).update({ points: newPoints, history });
     } catch (err) {
       showToast('Payment failed. Please try again.', 'danger');
       console.error('Payment error', err);
     }
-    const newPoints = (userData.points || 0) - pointsToUse + 20; // +20 for purchase
-    const history = userData.history || [];
-    history.push({ type: 'Ticket Purchase', details: `From ${from} to ${to} on bus ${bus}`, timestamp: Date.now() });
-    db.ref(`users/${currentUser.uid}`).update({ points: newPoints, history });
     bootstrap.Modal.getInstance(document.getElementById('buyTicketModal')).hide();
   };
 
@@ -1206,21 +1169,10 @@
     }
   };
 
-  // Feedback Function
-  const submitFeedback = () => {
-    const text = dom.feedbackText.value.trim();
-    if (text) {
-      showToast('Feedback submitted, thank you!', 'success');
-      // Send to database
-      db.ref('feedback').push({
-        user: currentUser ? currentUser.email : 'anonymous',
-        text,
-        timestamp: Date.now()
-      });
-      dom.feedbackText.value = '';
-      bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
-    } else {
-      showToast('Please enter feedback.', 'warning');
+  // Additional Features: Weather Integration (mock)
+  const showWeather = () => {
+    if (userLocation) {
+      showToast(`Current weather at your location: Sunny, 30°C (Mock)`, 'info');
     }
   };
 
@@ -1245,9 +1197,7 @@
     if (dom.searchRouteTo) dom.searchRouteTo.addEventListener('keypress', e => { if (e.key === 'Enter') searchByRoute(); });
 
     // Auth
-    if (dom.loginBtn) dom.loginBtn.addEventListener('click', () => new bootstrap.Modal(document.getElementById('loginModal')).show());
-    if (dom.signInBtn) dom.signInBtn.addEventListener('click', signIn);
-    if (dom.signUpBtn) dom.signUpBtn.addEventListener('click', signUp);
+    if (dom.loginBtn) dom.loginBtn.addEventListener('click', () => window.location.href = 'login.html');
     if (dom.logoutBtn) dom.logoutBtn.addEventListener('click', logout);
     if (dom.editProfileBtn) dom.editProfileBtn.addEventListener('click', showEditProfile);
     if (dom.saveProfileBtn) dom.saveProfileBtn.addEventListener('click', saveProfile);
