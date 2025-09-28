@@ -16,6 +16,8 @@
   const auth = firebase.auth();
   const functions = firebase.functions ? firebase.functions() : null;
 
+  const stripe = Stripe('pk_test_TYooMQauvdEDq54NiTphI7jx'); // Replace with your Stripe publishable key
+
   // DOM Element Caching
   const dom = {
     flashScreen: document.getElementById('flashScreen'),
@@ -76,7 +78,9 @@
     pointsRedeemSection: document.getElementById('pointsRedeemSection'),
     ticketFrom: document.getElementById('ticketFrom'),
     ticketTo: document.getElementById('ticketTo'),
-    ticketAmount: document.getElementById('ticketAmount')
+    ticketAmount: document.getElementById('ticketAmount'),
+    feedbackText: document.getElementById('feedbackText'),
+    submitFeedbackBtn: document.getElementById('submitFeedbackBtn')
   };
 
   // State & Map Variables
@@ -155,7 +159,29 @@
       history: 'Histoire',
       safetyAlert: 'Alerte de sécurité',
       chat: 'Chat'
-    }
+    },
+    // Add translations for other languages similarly. For brevity, using English as placeholder for others
+    as: { ...languages.en }, // Assamese
+    bn: { ...languages.en }, // Bengali
+    gu: { ...languages.en }, // Gujarati
+    kn: { ...languages.en }, // Kannada
+    ks: { ...languages.en }, // Kashmiri
+    kok: { ...languages.en }, // Konkani
+    ml: { ...languages.en }, // Malayalam
+    mni: { ...languages.en }, // Manipuri
+    mr: { ...languages.en }, // Marathi
+    ne: { ...languages.en }, // Nepali
+    or: { ...languages.en }, // Odia
+    pa: { ...languages.en }, // Punjabi
+    sa: { ...languages.en }, // Sanskrit
+    sd: { ...languages.en }, // Sindhi
+    ta: { ...languages.en }, // Tamil
+    te: { ...languages.en }, // Telugu
+    ur: { ...languages.en }, // Urdu
+    brx: { ...languages.en }, // Bodo
+    sat: { ...languages.en }, // Santhali
+    mai: { ...languages.en }, // Maithili
+    doi: { ...languages.en } // Dogri
   };
   let currentLang = 'en';
 
@@ -300,6 +326,7 @@
           setTimeout(() => userLocationMarker.openPopup(), 1000);
           findNearestBusStops();
           detectLanguageByLocation(latitude, longitude);
+          fetchWeather(latitude, longitude);
           resolve();
         },
         (err) => {
@@ -309,6 +336,17 @@
         { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
       );
     });
+  };
+
+  const fetchWeather = async (lat, lon) => {
+    const apiKey = 'your_openweather_api_key'; // Replace with real API key
+    try {
+      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`);
+      const data = await response.json();
+      showToast(`Current weather: ${data.weather[0].description}, ${data.main.temp}°C`, 'info');
+    } catch (e) {
+      console.error('Weather fetch error', e);
+    }
   };
 
   const detectLanguageByLocation = async (lat, lon) => {
@@ -323,13 +361,13 @@
   };
 
   const updateLanguage = () => {
-    document.title = languages[currentLang].title;
+    document.title = languages[currentLang].title || languages.en.title;
     // Update other texts dynamically
-    document.querySelector('.search-panel h5').textContent = languages[currentLang].findRide;
-    document.querySelector('label[for="searchVehicle"]').textContent = languages[currentLang].vehicleNumber;
-    document.querySelector('label[for="searchRouteFrom"]').textContent = languages[currentLang].routePlanner;
-    document.querySelector('.search-group label.fw-medium').textContent = languages[currentLang].busAlerts;
-    // Add more as needed
+    document.querySelector('.search-panel h5').textContent = languages[currentLang].findRide || languages.en.findRide;
+    document.querySelector('label[for="searchVehicle"]').textContent = languages[currentLang].vehicleNumber || languages.en.vehicleNumber;
+    document.querySelector('label[for="searchRouteFrom"]').textContent = languages[currentLang].routePlanner || languages.en.routePlanner;
+    document.querySelector('.search-group label.fw-medium').textContent = languages[currentLang].busAlerts || languages.en.busAlerts;
+    // Add more as needed for other elements
   };
 
   const findNearestBusStops = () => {
@@ -809,7 +847,6 @@
       userLocation: userLocation
     }).then(() => {
       showToast('Driver notified about your lost bag.', 'success');
-      // hide modal if using bootstrap modal with id lostBagModal
       const modalEl = document.getElementById('lostBagModal');
       if (modalEl) {
         const modal = bootstrap.Modal.getInstance(modalEl);
@@ -832,7 +869,7 @@
     });
   };
 
-  const buyTicket = () => {
+  const buyTicket = async () => {
     if (!currentUser) {
       showToast('Please login to buy ticket.', 'warning');
       return;
@@ -849,8 +886,23 @@
       showToast('Insufficient points.', 'warning');
       return;
     }
-    // Mock payment
-    showToast('Payment successful! Ticket purchased.', 'success');
+    try {
+      const { data } = await functions.httpsCallable('createCheckoutSession')({
+        amount: 10000, // 100 USD in cents
+        currency: 'usd',
+        from,
+        to,
+        bus,
+        pointsToUse
+      });
+      const result = await stripe.redirectToCheckout({ sessionId: data.id });
+      if (result.error) {
+        showToast(result.error.message, 'danger');
+      }
+    } catch (err) {
+      showToast('Payment failed. Please try again.', 'danger');
+      console.error('Payment error', err);
+    }
     const newPoints = (userData.points || 0) - pointsToUse + 20; // +20 for purchase
     const history = userData.history || [];
     history.push({ type: 'Ticket Purchase', details: `From ${from} to ${to} on bus ${bus}`, timestamp: Date.now() });
@@ -1154,10 +1206,21 @@
     }
   };
 
-  // Additional Features: Weather Integration (mock)
-  const showWeather = () => {
-    if (userLocation) {
-      showToast(`Current weather at your location: Sunny, 30°C (Mock)`, 'info');
+  // Feedback Function
+  const submitFeedback = () => {
+    const text = dom.feedbackText.value.trim();
+    if (text) {
+      showToast('Feedback submitted, thank you!', 'success');
+      // Send to database
+      db.ref('feedback').push({
+        user: currentUser ? currentUser.email : 'anonymous',
+        text,
+        timestamp: Date.now()
+      });
+      dom.feedbackText.value = '';
+      bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+    } else {
+      showToast('Please enter feedback.', 'warning');
     }
   };
 
@@ -1212,6 +1275,15 @@
     // Chat
     if (dom.chatBusSelect) dom.chatBusSelect.addEventListener('change', (e) => startChat(e.target.value));
     if (dom.sendChatBtn) dom.sendChatBtn.addEventListener('click', sendChat);
+
+    // Feedback
+    if (dom.submitFeedbackBtn) dom.submitFeedbackBtn.addEventListener('click', submitFeedback);
+    // Add feedback button to navbar or somewhere
+    const feedbackBtn = document.createElement('button');
+    feedbackBtn.className = 'btn btn-outline-info ms-2';
+    feedbackBtn.innerHTML = '<i class="bi bi-chat-square-text"></i> Feedback';
+    feedbackBtn.addEventListener('click', () => new bootstrap.Modal(document.getElementById('feedbackModal')).show());
+    document.querySelector('.navbar .container').appendChild(feedbackBtn);
 
     // Additional: Weather button (add if needed)
   };
