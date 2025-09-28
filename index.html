@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Navixera — Live Public Transit Dashboard</title>
+  <title>Live Public Transit Dashboard — Navixera</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,1053 +14,336 @@
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
-  <style>
-    :root {
-      --primary-color: #2563eb;
-      --primary-rgb: 37, 99, 235;
-      --primary-hover: #1d4ed8;
-      --secondary-color: #64748b;
-      --accent-color: #8b5cf6;
-      --success-color: #10b981;
-      --warning-color: #f59e0b;
-      --danger-color: #ef4444;
-      --bg-light: #f8fafc;
-      --card-bg: #ffffff;
-      --card-border: #e2e8f0;
-      --text-primary: #1e293b;
-      --text-secondary: #64748b;
-      --text-muted: #94a3b8;
-      --font-family: 'Inter', sans-serif;
-      --border-radius: 12px;
-      --border-radius-sm: 8px;
-      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: var(--font-family);
-      background-color: var(--bg-light);
-      color: var(--text-primary);
-      line-height: 1.5;
-    }
-
-    /* Flash Screen */
-    #flashScreen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: var(--primary-color);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      transition: opacity 0.5s ease;
-    }
-
-    #flashScreen.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .logo-container {
-      text-align: center;
-      color: white;
-    }
-
-    .logo-container svg {
-      width: 80px;
-      height: 80px;
-      margin-bottom: 1rem;
-    }
-
-    .logo-container h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-
-    .logo-container p {
-      font-size: 1.1rem;
-      opacity: 0.9;
-    }
-
-    /* Navbar */
-    .navbar {
-      background: var(--card-bg);
-      box-shadow: var(--shadow-sm);
-      padding: 0.75rem 0;
-    }
-
-    .navbar-brand {
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      color: var(--primary-color);
-      font-size: 1.25rem;
-    }
-
-    .navbar-brand svg {
-      color: var(--primary-color);
-    }
-
-    /* Language Selector */
-    .language-selector {
-      margin-right: 1rem;
-    }
-
-    /* User Profile */
-    .user-profile {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .user-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background-color: var(--primary-color);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-    }
-
-    .user-points {
-      background-color: var(--warning-color);
-      color: white;
-      padding: 0.25rem 0.5rem;
-      border-radius: 50px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-
-    /* Safety Button */
-    .safety-button {
-      background-color: var(--danger-color);
-      border: none;
-      color: white;
-      border-radius: 50px;
-      padding: 0.5rem 1rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: var(--transition);
-    }
-
-    .safety-button:hover {
-      background-color: #dc2626;
-      transform: scale(1.05);
-    }
-
-    .safety-button.active {
-      animation: pulse-danger 1.5s infinite;
-    }
-
-    @keyframes pulse-danger {
-      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-    }
-
-    /* Cards */
-    .card {
-      border: 1px solid var(--card-border);
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow-sm);
-      transition: var(--transition);
-      background: var(--card-bg);
-      overflow: hidden;
-    }
-
-    .card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .card-header {
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--card-border);
-      padding: 1rem 1.25rem;
-      font-weight: 600;
-    }
-
-    .card-title {
-      color: var(--text-primary);
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .card-body {
-      padding: 1.25rem;
-    }
-
-    /* Map */
-    #map {
-      height: 70vh;
-      min-height: 500px;
-      border-radius: var(--border-radius);
-      z-index: 1;
-    }
-
-    .map-card {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .map-controls {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      z-index: 401;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .map-controls .btn {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-md);
-      transition: var(--transition);
-    }
-
-    .map-controls .btn:hover {
-      transform: scale(1.05);
-    }
-
-    /* Progress Bar */
-    .progress-container {
-      margin: 1rem 0;
-    }
-
-    .progress-label {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-    }
-
-    .progress {
-      height: 8px;
-      border-radius: 4px;
-    }
-
-    /* Chat Panel */
-    .chat-panel {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 350px;
-      max-width: 90%;
-      z-index: 1020;
-      box-shadow: var(--shadow-lg);
-      transform: translateY(120%);
-      transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-      max-height: 400px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .chat-panel.is-visible {
-      transform: translateY(0);
-    }
-
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      background-color: #f8fafc;
-    }
-
-    .chat-message {
-      margin-bottom: 1rem;
-      padding: 0.75rem;
-      border-radius: var(--border-radius-sm);
-      max-width: 80%;
-    }
-
-    .chat-message.self {
-      background-color: var(--primary-color);
-      color: white;
-      margin-left: auto;
-    }
-
-    .chat-message.other {
-      background-color: white;
-      border: 1px solid var(--card-border);
-    }
-
-    .chat-input-container {
-      display: flex;
-      padding: 0.75rem;
-      border-top: 1px solid var(--card-border);
-      background-color: white;
-    }
-
-    .chat-input {
-      flex: 1;
-      border: 1px solid var(--card-border);
-      border-radius: var(--border-radius-sm);
-      padding: 0.5rem 0.75rem;
-      margin-right: 0.5rem;
-    }
-
-    /* History Panel */
-    .history-panel {
-      position: fixed;
-      top: 80px;
-      left: 20px;
-      width: 380px;
-      max-width: 90%;
-      z-index: 1020;
-      box-shadow: var(--shadow-lg);
-      transform: translateX(-120%);
-      transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-      max-height: calc(100vh - 100px);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .history-panel.is-visible {
-      transform: translateX(0);
-    }
-
-    .history-tabs {
-      display: flex;
-      border-bottom: 1px solid var(--card-border);
-    }
-
-    .history-tab {
-      flex: 1;
-      text-align: center;
-      padding: 0.75rem;
-      background: none;
-      border: none;
-      font-weight: 500;
-      color: var(--text-secondary);
-      transition: var(--transition);
-    }
-
-    .history-tab.active {
-      color: var(--primary-color);
-      border-bottom: 2px solid var(--primary-color);
-    }
-
-    .history-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-    }
-
-    .history-item {
-      padding: 0.75rem;
-      border-bottom: 1px solid var(--card-border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .history-item:last-child {
-      border-bottom: none;
-    }
-
-    .history-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background-color: #f1f5f9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 1rem;
-      color: var(--primary-color);
-    }
-
-    .history-details {
-      flex: 1;
-    }
-
-    .history-title {
-      font-weight: 500;
-      margin-bottom: 0.25rem;
-    }
-
-    .history-date {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .history-amount {
-      font-weight: 600;
-    }
-
-    /* Login Modal */
-    .auth-modal .modal-content {
-      border-radius: var(--border-radius);
-      overflow: hidden;
-    }
-
-    .auth-tabs {
-      display: flex;
-      border-bottom: 1px solid var(--card-border);
-    }
-
-    .auth-tab {
-      flex: 1;
-      text-align: center;
-      padding: 1rem;
-      background: none;
-      border: none;
-      font-weight: 500;
-      color: var(--text-secondary);
-      transition: var(--transition);
-    }
-
-    .auth-tab.active {
-      color: var(--primary-color);
-      border-bottom: 2px solid var(--primary-color);
-    }
-
-    .auth-form {
-      padding: 1.5rem;
-    }
-
-    /* Payment Modal */
-    .payment-methods {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .payment-method {
-      flex: 1;
-      text-align: center;
-      padding: 1rem;
-      border: 1px solid var(--card-border);
-      border-radius: var(--border-radius-sm);
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    .payment-method:hover, .payment-method.active {
-      border-color: var(--primary-color);
-      background-color: rgba(37, 99, 235, 0.05);
-    }
-
-    .payment-icon {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-      color: var(--text-muted);
-    }
-
-    .payment-method.active .payment-icon {
-      color: var(--primary-color);
-    }
-
-    /* Utility Classes */
-    .loader-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.85);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-      transition: opacity 0.3s ease;
-      opacity: 1;
-      backdrop-filter: blur(4px);
-    }
-
-    .loader-overlay.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .text-muted {
-      color: var(--text-muted) !important;
-    }
-
-    .text-primary {
-      color: var(--primary-color) !important;
-    }
-
-    .text-success {
-      color: var(--success-color) !important;
-    }
-
-    .fw-medium {
-      font-weight: 500;
-    }
-
-    .divider {
-      height: 1px;
-      background-color: var(--card-border);
-      margin: 1rem 0;
-    }
-
-    /* Responsive Adjustments */
-    @media (max-width: 767.98px) {
-      .chat-panel {
-        width: 100%;
-        max-width: 100%;
-        right: 0;
-        bottom: 0;
-        border-radius: var(--border-radius) var(--border-radius) 0 0;
-      }
-
-      .history-panel {
-        width: 100%;
-        max-width: 100%;
-        left: 0;
-        bottom: 0;
-        top: auto;
-        border-radius: var(--border-radius) var(--border-radius) 0 0;
-        transform: translateY(120%);
-      }
-
-      .history-panel.is-visible {
-        transform: translateY(0);
-      }
-
-      .map-controls {
-        flex-direction: row;
-        bottom: 15px;
-        top: auto;
-      }
-      
-      .navbar-brand {
-        font-size: 1.1rem;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="assets/css/index.css">
 </head>
 <body>
   <!-- Flash Screen -->
-  <div id="flashScreen">
+  <div id="flashScreen" class="flash-screen">
     <div class="logo-container">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-broadcast-pin" viewBox="0 0 16 16">
+      <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" fill="currentColor" class="bi bi-broadcast-pin" viewBox="0 0 16 16">
         <path d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.314.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM8 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>
         <path d="M12.06 13.94a.5.5 0 0 1 .707 0l1.414 1.414a.5.5 0 0 1-.707.707L12.06 14.647a.5.5 0 0 1 0-.707zM4.646 13.94a.5.5 0 0 0-.707 0L2.525 15.354a.5.5 0 0 0 .707.707L4.646 14.647a.5.5 0 0 0 0-.707zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zM8 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
       </svg>
       <h1>Navixera</h1>
-      <p>Live Public Transit Dashboard</p>
     </div>
   </div>
 
-  <!-- Main App -->
-  <div id="app" class="hidden">
-    <nav class="navbar navbar-expand-lg shadow-sm">
-      <div class="container">
-        <a class="navbar-brand" href="#">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-broadcast-pin" viewBox="0 0 16 16" style="margin-right: 8px;">
-            <path d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.314.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM8 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>
-            <path d="M12.06 13.94a.5.5 0 0 1 .707 0l1.414 1.414a.5.5 0 0 1-.707.707L12.06 14.647a.5.5 0 0 1 0-.707zM4.646 13.94a.5.5 0 0 0-.707 0L2.525 15.354a.5.5 0 0 0 .707.707L4.646 14.647a.5.5 0 0 0 0-.707zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zM8 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
-          </svg>
-          Navixera — Live Transit
-        </a>
-        
-        <div class="d-flex align-items-center">
-          <!-- Language Selector -->
-          <div class="language-selector">
-            <select class="form-select form-select-sm" id="languageSelect">
-              <option value="en">English</option>
-              <option value="es">Español</option>
-              <option value="fr">Français</option>
-              <option value="de">Deutsch</option>
-              <option value="hi">हिन्दी</option>
+  <nav class="navbar navbar-expand-lg shadow-sm">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-broadcast-pin" viewBox="0 0 16 16" style="margin-right: 8px;">
+          <path d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.314.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM8 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>
+          <path d="M12.06 13.94a.5.5 0 0 1 .707 0l1.414 1.414a.5.5 0 0 1-.707.707L12.06 14.647a.5.5 0 0 1 0-.707zM4.646 13.94a.5.5 0 0 0-.707 0L2.525 15.354a.5.5 0 0 0 .707.707L4.646 14.647a.5.5 0 0 0 0-.707zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zM8 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+        </svg>
+        Navixera — Live Transit
+      </a>
+      <div class="d-flex align-items-center">
+        <span class="badge bg-primary me-2">Live</span>
+        <small class="text-muted d-none d-md-block">AI-Powered Transit Tracking</small>
+      </div>
+      <div id="authSection" class="ms-auto d-flex align-items-center gap-2">
+        <button id="loginBtn" class="btn btn-outline-primary">Login</button>
+        <div id="profileSection" class="d-none">
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-person-circle"></i> Profile
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" id="editProfileBtn">Edit Profile</a></li>
+              <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
+              <li><a class="dropdown-item" href="#" id="historyBtn">History</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <select id="languageSelect" class="form-select ms-2" style="width: auto;">
+        <option value="en">English</option>
+        <option value="hi">Hindi</option>
+        <option value="fr">French</option>
+      </select>
+    </div>
+  </nav>
+
+  <main class="container my-4">
+    <div class="row g-4">
+      <div class="col-12 col-lg-8">
+        <div class="card map-card">
+          <div id="map"></div>
+          <div class="map-controls">
+            <button id="locateBtn" class="btn btn-light" title="Find My Location">
+              <i class="bi bi-geo-alt-fill text-primary"></i>
+            </button>
+            <button id="showBusStopsBtn" class="btn btn-light" title="Show Bus Stops">
+              <i class="bi bi-signpost text-primary"></i>
+            </button>
+            <button id="lostBagBtn" class="btn btn-light" title="Report Lost Bag" data-bs-toggle="modal" data-bs-target="#lostBagModal">
+              <i class="bi bi-bag-x text-danger"></i>
+            </button>
+            <button id="safetyBtn" class="btn btn-light" title="Safety Alert">
+              <i class="bi bi-shield-fill-exclamation text-danger"></i>
+            </button>
+            <button id="buyTicketBtn" class="btn btn-light" title="Buy Ticket" data-bs-toggle="modal" data-bs-target="#buyTicketModal">
+              <i class="bi bi-ticket-perforated text-success"></i>
+            </button>
+            <button id="chatBtn" class="btn btn-light" title="Chat" data-bs-toggle="modal" data-bs-target="#chatModal">
+              <i class="bi bi-chat-dots text-info"></i>
+            </button>
+          </div>
+          <div class="loader-overlay" id="loader">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="card search-panel">
+          <h5 class="card-title mb-3">Find Your Ride</h5>
+          <div class="search-group">
+            <label for="searchVehicle" class="form-label fw-medium">Vehicle Number</label>
+            <input type="text" id="searchVehicle" class="form-control" placeholder="e.g., MH-01-AB-1234">
+            <button id="searchVehicleBtn" class="btn btn-primary w-100 mt-2">
+              <i class="bi bi-search"></i> Search Vehicle
+            </button>
+          </div>
+          <div class="divider"></div>
+          <div class="search-group">
+            <label for="searchRouteFrom" class="form-label fw-medium">Route Planner</label>
+            <input type="text" id="searchRouteFrom" class="form-control" placeholder="From (e.g., Central Station)">
+            <input type="text" id="searchRouteTo" class="form-control mt-2" placeholder="To (e.g., North Park)">
+            <button id="searchRouteBtn" class="btn btn-primary w-100 mt-2">
+              <i class="bi bi-signpost-split"></i> Find Route
+            </button>
+          </div>
+          
+          <!-- Bus Alert Section -->
+          <div class="divider"></div>
+          <div class="search-group">
+            <label class="form-label fw-medium">Bus Arrival Alerts</label>
+            <select id="busAlertSelect" class="form-select">
+              <option value="">Select a bus to track</option>
+            </select>
+            <button id="setAlertBtn" class="btn btn-warning w-100 mt-2">
+              <i class="bi bi-bell"></i> Set Arrival Alert
+            </button>
+          </div>
+          
+          <div class="mt-auto">
+            <h6 class="fw-medium mb-2">Search Results</h6>
+            <div class="result-list" id="searchResults">
+              <div class="text-center p-3 text-muted">
+                <i class="bi bi-inbox d-block fs-1 mb-2"></i>
+                <span>Your search results will appear here</span>
+              </div>
+            </div>
+          </div>
+          <!-- Points Section -->
+          <div class="divider"></div>
+          <div class="search-group" id="pointsSection" style="display: none;">
+            <h6 class="fw-medium mb-2">Your Points: <span id="userPoints">0</span></h6>
+            <button id="dailyCheckInBtn" class="btn btn-success w-100">Daily Check-In</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="card sidebar" id="vehicleDetails">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0" id="vehicleTitle">Vehicle Details</h5>
+      <button type="button" class="btn-close" aria-label="Close" id="closeSidebarBtn"></button>
+    </div>
+    <div class="card-body">
+      <div id="vehicleInfo" class="mb-3"></div>
+      <h6 class="fw-medium mb-3">Route Stops</h6>
+      <ul id="stopList" class="list-group list-group-flush"></ul>
+      <!-- Progress Bar -->
+      <div class="mt-3">
+        <h6 class="fw-medium mb-2">Bus Progress</h6>
+        <div class="progress" id="busProgress">
+          <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card bus-stop-panel" id="busStopPanel">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="card-title mb-0">Nearest Bus Stop</h5>
+      <button type="button" class="btn-close" aria-label="Close" id="closeBusStopPanelBtn"></button>
+    </div>
+    <div class="card-body" id="busStopContent">
+      <!-- Dynamically populated -->
+    </div>
+  </div>
+
+  <!-- Lost Bag Modal -->
+  <div class="modal fade" id="lostBagModal" tabindex="-1" aria-labelledby="lostBagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="lostBagModalLabel">Report Lost Bag</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>If you've forgotten your bag on a bus, we can notify the driver. This only works when you're near the bus.</p>
+          <div class="mb-3">
+            <label for="lostBagBusSelect" class="form-label">Select Bus</label>
+            <select class="form-select" id="lostBagBusSelect">
+              <option value="">Select the bus you were on</option>
             </select>
           </div>
-          
-          <!-- Safety Button -->
-          <button class="btn safety-button me-2" id="safetyBtn">
-            <i class="bi bi-shield-exclamation"></i>
-            <span id="safetyText">Safety</span>
-          </button>
-          
-          <!-- User Profile or Login Button -->
-          <div id="userProfile" class="user-profile hidden">
-            <div class="user-avatar" id="userAvatar">JD</div>
-            <div class="user-info">
-              <div class="fw-medium" id="userName">John Doe</div>
-              <div class="user-points" id="userPoints">250 pts</div>
-            </div>
-            <div class="dropdown">
-              <button class="btn btn-link text-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-chevron-down"></i>
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="bi bi-person me-2"></i>Profile</a></li>
-                <li><a class="dropdown-item" href="#" id="historyBtn"><i class="bi bi-clock-history me-2"></i>History</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-              </ul>
-            </div>
+          <div class="mb-3">
+            <label for="bagDescription" class="form-label">Bag Description</label>
+            <textarea class="form-control" id="bagDescription" rows="3" placeholder="Describe your bag (color, size, distinctive features)"></textarea>
           </div>
-          
-          <button class="btn btn-outline-primary" id="loginBtn" data-bs-toggle="modal" data-bs-target="#authModal">
-            <i class="bi bi-person"></i> Login
-          </button>
-        </div>
-      </div>
-    </nav>
-
-    <main class="container my-4">
-      <div class="row g-4">
-        <div class="col-12 col-lg-8">
-          <div class="card map-card">
-            <div id="map"></div>
-            <div class="map-controls">
-              <button id="locateBtn" class="btn btn-light" title="Find My Location">
-                <i class="bi bi-geo-alt-fill text-primary"></i>
-              </button>
-              <button id="showBusStopsBtn" class="btn btn-light" title="Show Bus Stops">
-                <i class="bi bi-signpost text-primary"></i>
-              </button>
-              <button id="lostBagBtn" class="btn btn-light" title="Report Lost Bag" data-bs-toggle="modal" data-bs-target="#lostBagModal">
-                <i class="bi bi-bag-x text-danger"></i>
-              </button>
-              <button id="chatToggleBtn" class="btn btn-light" title="Chat">
-                <i class="bi bi-chat-dots text-primary"></i>
-              </button>
-            </div>
-            <div class="loader-overlay" id="loader">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-            
-            <!-- Bus Tracking Progress -->
-            <div class="progress-container p-3 border-top">
-              <div class="progress-label">
-                <span>Bus Tracking</span>
-                <span id="progressStatus">Initializing...</span>
-              </div>
-              <div class="progress">
-                <div id="trackingProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
-              </div>
-            </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="confirmLocation">
+            <label class="form-check-label" for="confirmLocation">
+              I confirm I'm currently near this bus
+            </label>
           </div>
         </div>
-        <div class="col-12 col-lg-4">
-          <div class="card search-panel">
-            <h5 class="card-title mb-3">Find Your Ride</h5>
-            <div class="search-group">
-              <label for="searchVehicle" class="form-label fw-medium">Vehicle Number</label>
-              <input type="text" id="searchVehicle" class="form-control" placeholder="e.g., MH-01-AB-1234">
-              <button id="searchVehicleBtn" class="btn btn-primary w-100 mt-2">
-                <i class="bi bi-search"></i> Search Vehicle
-              </button>
-            </div>
-            <div class="divider"></div>
-            <div class="search-group">
-              <label for="searchRouteFrom" class="form-label fw-medium">Route Planner</label>
-              <input type="text" id="searchRouteFrom" class="form-control" placeholder="From (e.g., Central Station)">
-              <input type="text" id="searchRouteTo" class="form-control mt-2" placeholder="To (e.g., North Park)">
-              <button id="searchRouteBtn" class="btn btn-primary w-100 mt-2">
-                <i class="bi bi-signpost-split"></i> Find Route
-              </button>
-            </div>
-            
-            <!-- Bus Alert Section -->
-            <div class="divider"></div>
-            <div class="search-group">
-              <label class="form-label fw-medium">Bus Arrival Alerts</label>
-              <select id="busAlertSelect" class="form-select">
-                <option value="">Select a bus to track</option>
-              </select>
-              <button id="setAlertBtn" class="btn btn-warning w-100 mt-2">
-                <i class="bi bi-bell"></i> Set Arrival Alert
-              </button>
-            </div>
-            
-            <!-- Buy Tickets Section -->
-            <div class="divider"></div>
-            <div class="search-group">
-              <label class="form-label fw-medium">Buy Tickets</label>
-              <button id="buyTicketsBtn" class="btn btn-success w-100 mt-2" data-bs-toggle="modal" data-bs-target="#ticketModal">
-                <i class="bi bi-ticket-perforated"></i> Buy Tickets
-              </button>
-              <div class="mt-2 text-center">
-                <small class="text-muted">Earn 10 points per ticket purchased</small>
-              </div>
-            </div>
-            
-            <div class="mt-auto">
-              <h6 class="fw-medium mb-2">Search Results</h6>
-              <div class="result-list" id="searchResults">
-                <div class="text-center p-3 text-muted">
-                  <i class="bi bi-inbox d-block fs-1 mb-2"></i>
-                  <span>Your search results will appear here</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <!-- Vehicle Details Sidebar -->
-    <div class="card sidebar" id="vehicleDetails">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0" id="vehicleTitle">Vehicle Details</h5>
-        <button type="button" class="btn-close" aria-label="Close" id="closeSidebarBtn"></button>
-      </div>
-      <div class="card-body">
-        <div id="vehicleInfo" class="mb-3"></div>
-        <h6 class="fw-medium mb-3">Route Stops</h6>
-        <ul id="stopList" class="list-group list-group-flush"></ul>
-      </div>
-    </div>
-
-    <!-- Bus Stop Panel -->
-    <div class="card bus-stop-panel" id="busStopPanel">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">Nearest Bus Stop</h5>
-        <button type="button" class="btn-close" aria-label="Close" id="closeBusStopPanelBtn"></button>
-      </div>
-      <div class="card-body" id="busStopContent">
-        <!-- Dynamically populated -->
-      </div>
-    </div>
-
-    <!-- Chat Panel -->
-    <div class="card chat-panel" id="chatPanel">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">Bus Chat</h5>
-        <button type="button" class="btn-close" aria-label="Close" id="closeChatBtn"></button>
-      </div>
-      <div class="chat-messages" id="chatMessages">
-        <div class="text-center p-3 text-muted">
-          <i class="bi bi-chat-square-text d-block fs-1 mb-2"></i>
-          <span>Select a bus to start chatting</span>
-        </div>
-      </div>
-      <div class="chat-input-container">
-        <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." disabled>
-        <button class="btn btn-primary" id="sendMessageBtn" disabled>
-          <i class="bi bi-send"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- History Panel -->
-    <div class="card history-panel" id="historyPanel">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">History</h5>
-        <button type="button" class="btn-close" aria-label="Close" id="closeHistoryBtn"></button>
-      </div>
-      <div class="history-tabs">
-        <button class="history-tab active" data-tab="transactions">Transactions</button>
-        <button class="history-tab" data-tab="points">Points</button>
-        <button class="history-tab" data-tab="trips">Trips</button>
-      </div>
-      <div class="history-content" id="historyContent">
-        <!-- Dynamically populated -->
-      </div>
-    </div>
-
-    <!-- Modals -->
-    
-    <!-- Auth Modal -->
-    <div class="modal fade auth-modal" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="auth-tabs">
-            <button class="auth-tab active" data-tab="login">Login</button>
-            <button class="auth-tab" data-tab="register">Register</button>
-          </div>
-          <div class="auth-form">
-            <div id="loginForm">
-              <div class="mb-3">
-                <label for="loginEmail" class="form-label">Email</label>
-                <input type="email" class="form-control" id="loginEmail" placeholder="Enter your email">
-              </div>
-              <div class="mb-3">
-                <label for="loginPassword" class="form-label">Password</label>
-                <input type="password" class="form-control" id="loginPassword" placeholder="Enter your password">
-              </div>
-              <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="rememberMe">
-                <label class="form-check-label" for="rememberMe">Remember me</label>
-              </div>
-              <button class="btn btn-primary w-100" id="loginSubmitBtn">Login</button>
-            </div>
-            <div id="registerForm" class="hidden">
-              <div class="mb-3">
-                <label for="registerName" class="form-label">Full Name</label>
-                <input type="text" class="form-control" id="registerName" placeholder="Enter your full name">
-              </div>
-              <div class="mb-3">
-                <label for="registerEmail" class="form-label">Email</label>
-                <input type="email" class="form-control" id="registerEmail" placeholder="Enter your email">
-              </div>
-              <div class="mb-3">
-                <label for="registerPassword" class="form-label">Password</label>
-                <input type="password" class="form-control" id="registerPassword" placeholder="Create a password">
-              </div>
-              <div class="mb-3">
-                <label for="registerConfirmPassword" class="form-label">Confirm Password</label>
-                <input type="password" class="form-control" id="registerConfirmPassword" placeholder="Confirm your password">
-              </div>
-              <button class="btn btn-primary w-100" id="registerSubmitBtn">Register</button>
-            </div>
-          </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="reportLostBagBtn">Report Lost Bag</button>
         </div>
       </div>
     </div>
-
-    <!-- Profile Modal -->
-    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="profileModalLabel">Edit Profile</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="profileName" class="form-label">Full Name</label>
-              <input type="text" class="form-control" id="profileName" value="John Doe">
-            </div>
-            <div class="mb-3">
-              <label for="profileEmail" class="form-label">Email</label>
-              <input type="email" class="form-control" id="profileEmail" value="john.doe@example.com">
-            </div>
-            <div class="mb-3">
-              <label for="profilePhone" class="form-label">Phone</label>
-              <input type="tel" class="form-control" id="profilePhone" value="+1 (555) 123-4567">
-            </div>
-            <div class="mb-3">
-              <label for="emergencyContact" class="form-label">Emergency Contact</label>
-              <input type="text" class="form-control" id="emergencyContact" value="Jane Doe - +1 (555) 987-6543">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Ticket Modal -->
-    <div class="modal fade" id="ticketModal" tabindex="-1" aria-labelledby="ticketModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="ticketModalLabel">Buy Tickets</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="ticketRoute" class="form-label">Select Route</label>
-              <select class="form-select" id="ticketRoute">
-                <option value="">Choose a route</option>
-                <option value="route1">Central Station to North Park</option>
-                <option value="route2">Downtown to Eastside Mall</option>
-                <option value="route3">West End to Airport</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="ticketType" class="form-label">Ticket Type</label>
-              <select class="form-select" id="ticketType">
-                <option value="single">Single Journey - $2.50</option>
-                <option value="day">Day Pass - $7.00</option>
-                <option value="week">Weekly Pass - $25.00</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="ticketQuantity" class="form-label">Quantity</label>
-              <input type="number" class="form-control" id="ticketQuantity" value="1" min="1" max="10">
-            </div>
-            <div class="mb-3 form-check">
-              <input type="checkbox" class="form-check-input" id="usePoints">
-              <label class="form-check-label" for="usePoints">Use points for discount (100 points = $1)</label>
-            </div>
-            <div class="alert alert-info">
-              <div class="d-flex justify-content-between">
-                <span>Total:</span>
-                <span id="ticketTotal">$2.50</span>
-              </div>
-              <div class="d-flex justify-content-between">
-                <span>Points to earn:</span>
-                <span id="pointsEarned">10 pts</span>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="proceedToPaymentBtn">Proceed to Payment</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Payment Modal -->
-    <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="paymentModalLabel">Complete Payment</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="payment-methods">
-              <div class="payment-method" data-method="card">
-                <div class="payment-icon">
-                  <i class="bi bi-credit-card"></i>
-                </div>
-                <div>Credit Card</div>
-              </div>
-              <div class="payment-method" data-method="paypal">
-                <div class="payment-icon">
-                  <i class="bi bi-paypal"></i>
-                </div>
-                <div>PayPal</div>
-              </div>
-              <div class="payment-method" data-method="wallet">
-                <div class="payment-icon">
-                  <i class="bi bi-phone"></i>
-                </div>
-                <div>Mobile Wallet</div>
-              </div>
-            </div>
-            
-            <div id="cardPaymentForm" class="payment-form">
-              <div class="mb-3">
-                <label for="cardNumber" class="form-label">Card Number</label>
-                <input type="text" class="form-control" id="cardNumber" placeholder="1234 5678 9012 3456">
-              </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="cardExpiry" class="form-label">Expiry Date</label>
-                  <input type="text" class="form-control" id="cardExpiry" placeholder="MM/YY">
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label for="cardCVC" class="form-label">CVC</label>
-                  <input type="text" class="form-control" id="cardCVC" placeholder="123">
-                </div>
-              </div>
-              <div class="mb-3">
-                <label for="cardName" class="form-label">Cardholder Name</label>
-                <input type="text" class="form-control" id="cardName" placeholder="John Doe">
-              </div>
-            </div>
-            
-            <div id="otherPaymentForm" class="payment-form hidden">
-              <div class="alert alert-info">
-                You will be redirected to complete your payment.
-              </div>
-            </div>
-            
-            <div class="alert alert-success mt-3">
-              <div class="d-flex justify-content-between">
-                <span>Amount to pay:</span>
-                <span id="paymentAmount">$2.50</span>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="confirmPaymentBtn">Confirm Payment</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Lost Bag Modal -->
-    <div class="modal fade" id="lostBagModal" tabindex="-1" aria-labelledby="lostBagModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="lostBagModalLabel">Report Lost Bag</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <p>If you've forgotten your bag on a bus, we can notify the driver. This only works when you're near the bus.</p>
-            <div class="mb-3">
-              <label for="lostBagBusSelect" class="form-label">Select Bus</label>
-              <select class="form-select" id="lostBagBusSelect">
-                <option value="">Select the bus you were on</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="bagDescription" class="form-label">Bag Description</label>
-              <textarea class="form-control" id="bagDescription" rows="3" placeholder="Describe your bag (color, size, distinctive features)"></textarea>
-            </div>
-            <div class="form-check mb-3">
-              <input class="form-check-input" type="checkbox" id="confirmLocation">
-              <label class="form-check-label" for="confirmLocation">
-                I confirm I'm currently near this bus
-              </label>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-danger" id="reportLostBagBtn">Report Lost Bag</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Safety Alert Modal -->
-    <div class="modal fade" id="safetyModal" tabindex="-1" aria-labelledby="safetyModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="safetyModalLabel">Safety Alert</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="alert alert-danger">
-              <h6><i class="bi bi-exclamation-triangle-fill"></i> Emergency Alert</h6>
-              <p class="mb-0">Your location and an emergency alert will be sent to nearby police stations and your emergency contacts.</p>
-            </div>
-            <div class="mb-3">
-              <label for="safetyMessage" class="form-label">Additional Message (Optional)</label>
-              <textarea class="form-control" id="safetyMessage" rows="3" placeholder="Add any additional details about your situation"></textarea>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="confirmEmergency">
-              <label class="form-check-label" for="confirmEmergency">
-                I confirm this is a real emergency
-              </label>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-danger" id="confirmSafetyAlertBtn">Send Alert</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="toast-container"></div>
   </div>
+
+  <!-- Buy Ticket Modal -->
+  <div class="modal fade" id="buyTicketModal" tabindex="-1" aria-labelledby="buyTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="buyTicketModalLabel">Buy Ticket</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="ticketFrom" class="form-label">From</label>
+            <input type="text" class="form-control" id="ticketFrom" placeholder="Enter starting point">
+          </div>
+          <div class="mb-3">
+            <label for="ticketTo" class="form-label">To</label>
+            <input type="text" class="form-control" id="ticketTo" placeholder="Enter destination">
+          </div>
+          <div class="mb-3">
+            <label for="ticketBusSelect" class="form-label">Select Bus</label>
+            <select class="form-select" id="ticketBusSelect">
+              <option value="">Select a bus</option>
+            </select>
+          </div>
+          <div class="mb-3" id="pointsRedeemSection" style="display: none;">
+            <label for="usePoints" class="form-label">Use Points for Discount</label>
+            <input type="number" class="form-control" id="usePoints" min="0" placeholder="Enter points to use">
+          </div>
+          <p>Total Amount: <span id="ticketAmount">100</span> (Mock)</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success" id="payTicketBtn">Pay Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="loginModalLabel">Login</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" placeholder="Enter email">
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" placeholder="Enter password">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="signInBtn">Sign In</button>
+          <button type="button" class="btn btn-outline-primary" id="signUpBtn">Sign Up</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="profileName" class="form-label">Name</label>
+            <input type="text" class="form-control" id="profileName" placeholder="Enter name">
+          </div>
+          <div class="mb-3">
+            <label for="profileEmail" class="form-label">Email</label>
+            <input type="email" class="form-control" id="profileEmail" placeholder="Enter email" disabled>
+          </div>
+          <div class="mb-3">
+            <label for="emergencyContacts" class="form-label">Emergency Contacts (comma-separated)</label>
+            <input type="text" class="form-control" id="emergencyContacts" placeholder="e.g., +1234567890, +0987654321">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveProfileBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="historyModalLabel">Transaction History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul id="historyList" class="list-group"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Modal -->
+  <div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="chatModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="chatModalLabel">Bus Chat</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <select id="chatBusSelect" class="form-select mb-3">
+            <option value="">Select Bus to Chat</option>
+          </select>
+          <div id="chatMessages" class="border p-3 mb-3" style="height: 200px; overflow-y: auto;"></div>
+          <div class="input-group">
+            <input type="text" id="chatInput" class="form-control" placeholder="Type message...">
+            <button class="btn btn-primary" id="sendChatBtn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container"></div>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -1070,878 +353,6 @@
   <script src="https://cdn.jsdelivr.net/npm/leaflet-rotatedmarker@0.2.0/leaflet.rotatedMarker.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 
-  <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyCn9YSO4-ksWl6JBqIcEEuLx2EJN8jMj4M",
-      authDomain: "svms-c0232.firebaseapp.com",
-      databaseURL: "https://svms-c0232-default-rtdb.firebaseio.com",
-      projectId: "svms-c0232",
-      storageBucket: "svms-c0232.appspot.com",
-      messagingSenderId: "359201898609",
-      appId: "1:359201898609:web:893ef076207abb06471bd0"
-    };
-    
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const auth = firebase.auth();
-    const functions = firebase.functions ? firebase.functions() : null;
-
-    // App State
-    let appState = {
-      user: null,
-      isLoggedIn: false,
-      userPoints: 0,
-      language: 'en',
-      currentBus: null,
-      safetyActive: false,
-      chatEnabled: false
-    };
-
-    // Language translations
-    const translations = {
-      en: {
-        safety: "Safety",
-        login: "Login",
-        points: "points",
-        buyTickets: "Buy Tickets",
-        reportLostBag: "Report Lost Bag",
-        chat: "Chat",
-        history: "History",
-        profile: "Profile",
-        logout: "Logout"
-      },
-      es: {
-        safety: "Seguridad",
-        login: "Iniciar Sesión",
-        points: "puntos",
-        buyTickets: "Comprar Boletos",
-        reportLostBag: "Reportar Bolsa Perdida",
-        chat: "Chat",
-        history: "Historial",
-        profile: "Perfil",
-        logout: "Cerrar Sesión"
-      },
-      fr: {
-        safety: "Sécurité",
-        login: "Connexion",
-        points: "points",
-        buyTickets: "Acheter des Billets",
-        reportLostBag: "Signaler un Sac Perdu",
-        chat: "Chat",
-        history: "Historique",
-        profile: "Profil",
-        logout: "Déconnexion"
-      },
-      de: {
-        safety: "Sicherheit",
-        login: "Anmelden",
-        points: "Punkte",
-        buyTickets: "Tickets Kaufen",
-        reportLostBag: "Verlorene Tasche Melden",
-        chat: "Chat",
-        history: "Verlauf",
-        profile: "Profil",
-        logout: "Abmelden"
-      },
-      hi: {
-        safety: "सुरक्षा",
-        login: "लॉग इन",
-        points: "अंक",
-        buyTickets: "टिकट खरीदें",
-        reportLostBag: "खोया हुआ बैग रिपोर्ट करें",
-        chat: "चैट",
-        history: "इतिहास",
-        profile: "प्रोफाइल",
-        logout: "लॉग आउट"
-      }
-    };
-
-    // DOM Elements
-    const dom = {
-      flashScreen: document.getElementById('flashScreen'),
-      app: document.getElementById('app'),
-      languageSelect: document.getElementById('languageSelect'),
-      safetyBtn: document.getElementById('safetyBtn'),
-      safetyText: document.getElementById('safetyText'),
-      userProfile: document.getElementById('userProfile'),
-      userAvatar: document.getElementById('userAvatar'),
-      userName: document.getElementById('userName'),
-      userPoints: document.getElementById('userPoints'),
-      loginBtn: document.getElementById('loginBtn'),
-      logoutBtn: document.getElementById('logoutBtn'),
-      historyBtn: document.getElementById('historyBtn'),
-      progressStatus: document.getElementById('progressStatus'),
-      trackingProgress: document.getElementById('trackingProgress'),
-      chatToggleBtn: document.getElementById('chatToggleBtn'),
-      chatPanel: document.getElementById('chatPanel'),
-      chatMessages: document.getElementById('chatMessages'),
-      chatInput: document.getElementById('chatInput'),
-      sendMessageBtn: document.getElementById('sendMessageBtn'),
-      closeChatBtn: document.getElementById('closeChatBtn'),
-      historyPanel: document.getElementById('historyPanel'),
-      historyContent: document.getElementById('historyContent'),
-      closeHistoryBtn: document.getElementById('closeHistoryBtn'),
-      authModal: document.getElementById('authModal'),
-      authTabs: document.querySelectorAll('.auth-tab'),
-      loginForm: document.getElementById('loginForm'),
-      registerForm: document.getElementById('registerForm'),
-      loginSubmitBtn: document.getElementById('loginSubmitBtn'),
-      registerSubmitBtn: document.getElementById('registerSubmitBtn'),
-      profileModal: document.getElementById('profileModal'),
-      saveProfileBtn: document.getElementById('saveProfileBtn'),
-      ticketModal: document.getElementById('ticketModal'),
-      buyTicketsBtn: document.getElementById('buyTicketsBtn'),
-      ticketRoute: document.getElementById('ticketRoute'),
-      ticketType: document.getElementById('ticketType'),
-      ticketQuantity: document.getElementById('ticketQuantity'),
-      usePoints: document.getElementById('usePoints'),
-      ticketTotal: document.getElementById('ticketTotal'),
-      pointsEarned: document.getElementById('pointsEarned'),
-      proceedToPaymentBtn: document.getElementById('proceedToPaymentBtn'),
-      paymentModal: document.getElementById('paymentModal'),
-      paymentMethods: document.querySelectorAll('.payment-method'),
-      cardPaymentForm: document.getElementById('cardPaymentForm'),
-      otherPaymentForm: document.getElementById('otherPaymentForm'),
-      paymentAmount: document.getElementById('paymentAmount'),
-      confirmPaymentBtn: document.getElementById('confirmPaymentBtn'),
-      safetyModal: document.getElementById('safetyModal'),
-      confirmSafetyAlertBtn: document.getElementById('confirmSafetyAlertBtn'),
-      toastContainer: document.querySelector('.toast-container')
-    };
-
-    // Initialize the application
-    document.addEventListener('DOMContentLoaded', function() {
-      // Show flash screen for 3 seconds
-      setTimeout(() => {
-        dom.flashScreen.classList.add('hidden');
-        dom.app.classList.remove('hidden');
-        initializeApp();
-      }, 3000);
-    });
-
-    function initializeApp() {
-      // Initialize language
-      initializeLanguage();
-      
-      // Initialize authentication
-      initializeAuth();
-      
-      // Initialize map and other components
-      initializeMap();
-      
-      // Initialize event listeners
-      initializeEventListeners();
-      
-      // Initialize daily check-in
-      initializeDailyCheckIn();
-    }
-
-    function initializeLanguage() {
-      // Set language based on browser or user preference
-      const browserLang = navigator.language.split('-')[0];
-      if (translations[browserLang]) {
-        appState.language = browserLang;
-        dom.languageSelect.value = browserLang;
-      }
-      
-      // Update UI with current language
-      updateLanguageUI();
-      
-      // Add event listener for language change
-      dom.languageSelect.addEventListener('change', function() {
-        appState.language = this.value;
-        updateLanguageUI();
-      });
-    }
-
-    function updateLanguageUI() {
-      const t = translations[appState.language];
-      dom.safetyText.textContent = t.safety;
-      dom.loginBtn.innerHTML = `<i class="bi bi-person"></i> ${t.login}`;
-      
-      if (appState.isLoggedIn) {
-        dom.userPoints.textContent = `${appState.userPoints} ${t.points}`;
-      }
-    }
-
-    function initializeAuth() {
-      // Listen for auth state changes
-      auth.onAuthStateChanged((user) => {
-        if (user) {
-          appState.user = user;
-          appState.isLoggedIn = true;
-          updateUserUI();
-          loadUserData();
-        } else {
-          appState.user = null;
-          appState.isLoggedIn = false;
-          updateUserUI();
-        }
-      });
-    }
-
-    function updateUserUI() {
-      if (appState.isLoggedIn) {
-        dom.userProfile.classList.remove('hidden');
-        dom.loginBtn.classList.add('hidden');
-        
-        // Update user info
-        if (appState.user.displayName) {
-          dom.userName.textContent = appState.user.displayName;
-          dom.userAvatar.textContent = appState.user.displayName.split(' ').map(n => n[0]).join('').toUpperCase();
-        } else {
-          dom.userName.textContent = appState.user.email;
-          dom.userAvatar.textContent = appState.user.email[0].toUpperCase();
-        }
-        
-        // Update points
-        dom.userPoints.textContent = `${appState.userPoints} ${translations[appState.language].points}`;
-      } else {
-        dom.userProfile.classList.add('hidden');
-        dom.loginBtn.classList.remove('hidden');
-      }
-    }
-
-    function loadUserData() {
-      // Load user data from Firebase
-      if (appState.user) {
-        db.ref(`users/${appState.user.uid}`).once('value').then((snapshot) => {
-          const userData = snapshot.val();
-          if (userData) {
-            appState.userPoints = userData.points || 0;
-            updateUserUI();
-          }
-        });
-      }
-    }
-
-    function initializeMap() {
-      // This would initialize the map and related functionality
-      // For now, we'll just simulate bus tracking progress
-      simulateBusTracking();
-    }
-
-    function simulateBusTracking() {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 5;
-        dom.trackingProgress.style.width = `${progress}%`;
-        
-        if (progress <= 25) {
-          dom.progressStatus.textContent = "Connecting to GPS...";
-        } else if (progress <= 50) {
-          dom.progressStatus.textContent = "Locating vehicles...";
-        } else if (progress <= 75) {
-          dom.progressStatus.textContent = "Calculating routes...";
-        } else if (progress < 100) {
-          dom.progressStatus.textContent = "Finalizing...";
-        } else {
-          dom.progressStatus.textContent = "Tracking active";
-          clearInterval(interval);
-        }
-      }, 200);
-    }
-
-    function initializeEventListeners() {
-      // Auth modal tabs
-      dom.authTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-          const tabName = this.getAttribute('data-tab');
-          
-          // Update active tab
-          dom.authTabs.forEach(t => t.classList.remove('active'));
-          this.classList.add('active');
-          
-          // Show corresponding form
-          if (tabName === 'login') {
-            dom.loginForm.classList.remove('hidden');
-            dom.registerForm.classList.add('hidden');
-          } else {
-            dom.loginForm.classList.add('hidden');
-            dom.registerForm.classList.remove('hidden');
-          }
-        });
-      });
-      
-      // Login form submission
-      dom.loginSubmitBtn.addEventListener('click', function() {
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-        
-        if (!email || !password) {
-          showToast('Please enter both email and password', 'warning');
-          return;
-        }
-        
-        auth.signInWithEmailAndPassword(email, password)
-          .then((userCredential) => {
-            showToast('Login successful!', 'success');
-            bootstrap.Modal.getInstance(dom.authModal).hide();
-          })
-          .catch((error) => {
-            showToast('Login failed: ' + error.message, 'danger');
-          });
-      });
-      
-      // Register form submission
-      dom.registerSubmitBtn.addEventListener('click', function() {
-        const name = document.getElementById('registerName').value;
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-        const confirmPassword = document.getElementById('registerConfirmPassword').value;
-        
-        if (!name || !email || !password || !confirmPassword) {
-          showToast('Please fill all fields', 'warning');
-          return;
-        }
-        
-        if (password !== confirmPassword) {
-          showToast('Passwords do not match', 'warning');
-          return;
-        }
-        
-        auth.createUserWithEmailAndPassword(email, password)
-          .then((userCredential) => {
-            // Update user profile
-            return userCredential.user.updateProfile({
-              displayName: name
-            });
-          })
-          .then(() => {
-            // Create user record in database
-            return db.ref(`users/${auth.currentUser.uid}`).set({
-              name: name,
-              email: email,
-              points: 0,
-              createdAt: firebase.database.ServerValue.TIMESTAMP
-            });
-          })
-          .then(() => {
-            showToast('Registration successful!', 'success');
-            bootstrap.Modal.getInstance(dom.authModal).hide();
-          })
-          .catch((error) => {
-            showToast('Registration failed: ' + error.message, 'danger');
-          });
-      });
-      
-      // Logout
-      dom.logoutBtn.addEventListener('click', function() {
-        auth.signOut().then(() => {
-          showToast('Logged out successfully', 'info');
-        });
-      });
-      
-      // Save profile
-      dom.saveProfileBtn.addEventListener('click', function() {
-        const name = document.getElementById('profileName').value;
-        const email = document.getElementById('profileEmail').value;
-        const phone = document.getElementById('profilePhone').value;
-        const emergencyContact = document.getElementById('emergencyContact').value;
-        
-        // Update user profile in Firebase
-        if (appState.user) {
-          db.ref(`users/${appState.user.uid}`).update({
-            name: name,
-            email: email,
-            phone: phone,
-            emergencyContact: emergencyContact
-          }).then(() => {
-            showToast('Profile updated successfully', 'success');
-            bootstrap.Modal.getInstance(dom.profileModal).hide();
-            
-            // Update display name if changed
-            if (name !== appState.user.displayName) {
-              appState.user.updateProfile({
-                displayName: name
-              }).then(() => {
-                updateUserUI();
-              });
-            }
-          });
-        }
-      });
-      
-      // Safety button
-      dom.safetyBtn.addEventListener('click', function() {
-        if (!appState.isLoggedIn) {
-          showToast('Please login to use the safety feature', 'warning');
-          return;
-        }
-        
-        if (!appState.safetyActive) {
-          // Show safety modal
-          const safetyModal = new bootstrap.Modal(dom.safetyModal);
-          safetyModal.show();
-        } else {
-          // Deactivate safety
-          appState.safetyActive = false;
-          dom.safetyBtn.classList.remove('active');
-          showToast('Safety alert deactivated', 'info');
-        }
-      });
-      
-      // Confirm safety alert
-      dom.confirmSafetyAlertBtn.addEventListener('click', function() {
-        const confirmEmergency = document.getElementById('confirmEmergency').checked;
-        const safetyMessage = document.getElementById('safetyMessage').value;
-        
-        if (!confirmEmergency) {
-          showToast('Please confirm this is a real emergency', 'warning');
-          return;
-        }
-        
-        // Activate safety alert
-        appState.safetyActive = true;
-        dom.safetyBtn.classList.add('active');
-        
-        // Send alert to emergency contacts and authorities
-        if (appState.user) {
-          db.ref(`safety_alerts`).push({
-            userId: appState.user.uid,
-            userName: appState.user.displayName || appState.user.email,
-            message: safetyMessage,
-            timestamp: firebase.database.ServerValue.TIMESTAMP,
-            location: "Simulated location data"
-          }).then(() => {
-            showToast('Safety alert sent to authorities and emergency contacts', 'success');
-            bootstrap.Modal.getInstance(dom.safetyModal).hide();
-            
-            // Play alert sound
-            playAlertSound();
-          });
-        }
-      });
-      
-      // Chat toggle
-      dom.chatToggleBtn.addEventListener('click', function() {
-        if (!appState.isLoggedIn) {
-          showToast('Please login to use the chat feature', 'warning');
-          return;
-        }
-        
-        if (dom.chatPanel.classList.contains('is-visible')) {
-          dom.chatPanel.classList.remove('is-visible');
-        } else {
-          dom.chatPanel.classList.add('is-visible');
-          initializeChat();
-        }
-      });
-      
-      // Close chat
-      dom.closeChatBtn.addEventListener('click', function() {
-        dom.chatPanel.classList.remove('is-visible');
-      });
-      
-      // Send message
-      dom.sendMessageBtn.addEventListener('click', function() {
-        const message = dom.chatInput.value.trim();
-        if (message) {
-          sendChatMessage(message);
-          dom.chatInput.value = '';
-        }
-      });
-      
-      // Chat input enter key
-      dom.chatInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          dom.sendMessageBtn.click();
-        }
-      });
-      
-      // History button
-      dom.historyBtn.addEventListener('click', function() {
-        if (!appState.isLoggedIn) {
-          showToast('Please login to view your history', 'warning');
-          return;
-        }
-        
-        dom.historyPanel.classList.add('is-visible');
-        loadHistoryData();
-      });
-      
-      // Close history
-      dom.closeHistoryBtn.addEventListener('click', function() {
-        dom.historyPanel.classList.remove('is-visible');
-      });
-      
-      // History tabs
-      document.querySelectorAll('.history-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-          const tabName = this.getAttribute('data-tab');
-          
-          // Update active tab
-          document.querySelectorAll('.history-tab').forEach(t => t.classList.remove('active'));
-          this.classList.add('active');
-          
-          // Load corresponding history
-          loadHistoryData(tabName);
-        });
-      });
-      
-      // Buy tickets
-      dom.buyTicketsBtn.addEventListener('click', function() {
-        if (!appState.isLoggedIn) {
-          showToast('Please login to buy tickets', 'warning');
-          return;
-        }
-      });
-      
-      // Ticket calculation
-      dom.ticketType.addEventListener('change', calculateTicketTotal);
-      dom.ticketQuantity.addEventListener('change', calculateTicketTotal);
-      dom.usePoints.addEventListener('change', calculateTicketTotal);
-      
-      // Proceed to payment
-      dom.proceedToPaymentBtn.addEventListener('click', function() {
-        const route = dom.ticketRoute.value;
-        const type = dom.ticketType.value;
-        const quantity = parseInt(dom.ticketQuantity.value);
-        
-        if (!route) {
-          showToast('Please select a route', 'warning');
-          return;
-        }
-        
-        // Close ticket modal and open payment modal
-        bootstrap.Modal.getInstance(dom.ticketModal).hide();
-        const paymentModal = new bootstrap.Modal(dom.paymentModal);
-        paymentModal.show();
-      });
-      
-      // Payment methods
-      dom.paymentMethods.forEach(method => {
-        method.addEventListener('click', function() {
-          const methodType = this.getAttribute('data-method');
-          
-          // Update active payment method
-          dom.paymentMethods.forEach(m => m.classList.remove('active'));
-          this.classList.add('active');
-          
-          // Show corresponding form
-          if (methodType === 'card') {
-            dom.cardPaymentForm.classList.remove('hidden');
-            dom.otherPaymentForm.classList.add('hidden');
-          } else {
-            dom.cardPaymentForm.classList.add('hidden');
-            dom.otherPaymentForm.classList.remove('hidden');
-          }
-        });
-      });
-      
-      // Confirm payment
-      dom.confirmPaymentBtn.addEventListener('click', function() {
-        // Simulate payment processing
-        showToast('Processing payment...', 'info');
-        
-        setTimeout(() => {
-          // Simulate successful payment
-          showToast('Payment successful! Tickets purchased.', 'success');
-          bootstrap.Modal.getInstance(dom.paymentModal).hide();
-          
-          // Award points
-          if (appState.user) {
-            const pointsEarned = parseInt(dom.pointsEarned.textContent);
-            appState.userPoints += pointsEarned;
-            updateUserUI();
-            
-            // Update points in database
-            db.ref(`users/${appState.user.uid}/points`).set(appState.userPoints);
-            
-            // Add transaction to history
-            db.ref(`users/${appState.user.uid}/transactions`).push({
-              type: 'ticket_purchase',
-              amount: parseFloat(dom.paymentAmount.textContent.replace('$', '')),
-              points: pointsEarned,
-              description: `${dom.ticketQuantity.value} ${dom.ticketType.options[dom.ticketType.selectedIndex].text}`,
-              timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-          }
-        }, 2000);
-      });
-    }
-
-    function initializeDailyCheckIn() {
-      // Check if user has checked in today
-      if (appState.isLoggedIn) {
-        const today = new Date().toDateString();
-        const lastCheckIn = localStorage.getItem(`dailyCheckIn_${appState.user.uid}`);
-        
-        if (lastCheckIn !== today) {
-          // Award daily check-in points
-          setTimeout(() => {
-            if (confirm('Daily check-in! Would you like to claim 5 points?')) {
-              appState.userPoints += 5;
-              updateUserUI();
-              
-              // Update points in database
-              if (appState.user) {
-                db.ref(`users/${appState.user.uid}/points`).set(appState.userPoints);
-                
-                // Add points transaction to history
-                db.ref(`users/${appState.user.uid}/points_history`).push({
-                  type: 'daily_checkin',
-                  points: 5,
-                  timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-              }
-              
-              // Save check-in date
-              localStorage.setItem(`dailyCheckIn_${appState.user.uid}`, today);
-              showToast('Daily check-in complete! 5 points awarded.', 'success');
-            }
-          }, 1000);
-        }
-      }
-    }
-
-    function initializeChat() {
-      // Enable chat input
-      dom.chatInput.disabled = false;
-      dom.sendMessageBtn.disabled = false;
-      
-      // Load chat messages
-      dom.chatMessages.innerHTML = `
-        <div class="chat-message other">
-          <strong>System:</strong> Welcome to bus chat! Start a conversation with other passengers.
-        </div>
-      `;
-      
-      // Simulate receiving a message after a delay
-      setTimeout(() => {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'chat-message other';
-        messageDiv.innerHTML = `<strong>Passenger:</strong> Hello! Is this bus running on time today?`;
-        dom.chatMessages.appendChild(messageDiv);
-        dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
-        
-        // Award points for using chat
-        if (appState.user) {
-          appState.userPoints += 2;
-          updateUserUI();
-          db.ref(`users/${appState.user.uid}/points`).set(appState.userPoints);
-          
-          // Add points transaction to history
-          db.ref(`users/${appState.user.uid}/points_history`).push({
-            type: 'chat_participation',
-            points: 2,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-          });
-        }
-      }, 2000);
-    }
-
-    function sendChatMessage(message) {
-      const messageDiv = document.createElement('div');
-      messageDiv.className = 'chat-message self';
-      messageDiv.innerHTML = `<strong>You:</strong> ${message}`;
-      dom.chatMessages.appendChild(messageDiv);
-      dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
-      
-      // Simulate response after a delay
-      setTimeout(() => {
-        const responses = [
-          "Thanks for the info!",
-          "That's helpful, thank you.",
-          "I see, thanks for letting me know.",
-          "Great to know, appreciate it!"
-        ];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        
-        const responseDiv = document.createElement('div');
-        responseDiv.className = 'chat-message other';
-        responseDiv.innerHTML = `<strong>Passenger:</strong> ${randomResponse}`;
-        dom.chatMessages.appendChild(responseDiv);
-        dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
-      }, 1000 + Math.random() * 2000);
-    }
-
-    function loadHistoryData(tab = 'transactions') {
-      let content = '';
-      
-      if (tab === 'transactions') {
-        content = `
-          <div class="history-item">
-            <div class="history-icon">
-              <i class="bi bi-ticket-perforated"></i>
-            </div>
-            <div class="history-details">
-              <div class="history-title">Bus Ticket</div>
-              <div class="history-date">Today, 10:30 AM</div>
-            </div>
-            <div class="history-amount text-danger">-$2.50</div>
-          </div>
-          <div class="history-item">
-            <div class="history-icon">
-              <i class="bi bi-ticket-perforated"></i>
-            </div>
-            <div class="history-details">
-              <div class="history-title">Weekly Pass</div>
-              <div class="history-date">Yesterday, 3:15 PM</div>
-            </div>
-            <div class="history-amount text-danger">-$25.00</div>
-          </div>
-          <div class="history-item">
-            <div class="history-icon">
-              <i class="bi bi-arrow-clockwise"></i>
-            </div>
-            <div class="history-details">
-              <div class="history-title">Ticket Refund</div>
-              <div class="history-date">2 days ago, 11:20 AM</div>
-            </div>
-            <div class="history-amount text-success">+$5.00</div>
-          </div>
-        `;
-      } else if (tab === 'points') {
-        content = `
-          <div class="history-item">
-            <div class="history-icon">
-              <i class="bi bi-chat-square-text"></i>
-            </div>
-            <div class="history-details">
-              <div class="history-title">Chat Participation</div>
-              <div class="history-date">Today, 9:45 AM</div>
-            </div>
-            <div class="history-amount text-success">+2 pts</div>
-          </div>
-          <div class="history-item">
-            <div class="history-icon">
-              <i class="bi bi-calendar-check"></i>
-            </div>
-            <div class="history-details">
-              <div class="history-title">Daily Check-in</div>
-              <div class="history-date">Today, 8:30 AM</div>
-            </div>
-            <div class="history-amount text-success">+5 pts</div>
-          </div>
-          <div class="history-item">
-            <div class="history-icon">
-              <i class="bi bi-ticket-perforated"></i>
-            </div>
-            <div class="history-details">
-              <div class="history-title">Ticket Purchase</div>
-              <div class="history-date">Yesterday, 5:20 PM</div>
-            </div>
-            <div class="history-amount text-success">+10 pts</div>
-          </div>
-        `;
-      } else if (tab === 'trips') {
-        content = `
-          <div class="history-item">
-            <div class="history-icon">
-              <i class="bi bi-geo-alt"></i>
-            </div>
-            <div class="history-details">
-              <div class="history-title">Central Station to North Park</div>
-              <div class="history-date">Today, 8:15 AM - 8:45 AM</div>
-            </div>
-            <div class="history-amount">Bus #42</div>
-          </div>
-          <div class="history-item">
-            <div class="history-icon">
-              <i class="bi bi-geo-alt"></i>
-            </div>
-            <div class="history-details">
-              <div class="history-title">North Park to Downtown</div>
-              <div class="history-date">Yesterday, 6:30 PM - 7:10 PM</div>
-            </div>
-            <div class="history-amount">Bus #17</div>
-          </div>
-          <div class="history-item">
-            <div class="history-icon">
-              <i class="bi bi-geo-alt"></i>
-            </div>
-            <div class="history-details">
-              <div class="history-title">Downtown to West End</div>
-              <div class="history-date">2 days ago, 4:45 PM - 5:25 PM</div>
-            </div>
-            <div class="history-amount">Bus #29</div>
-          </div>
-        `;
-      }
-      
-      dom.historyContent.innerHTML = content;
-    }
-
-    function calculateTicketTotal() {
-      const type = dom.ticketType.value;
-      const quantity = parseInt(dom.ticketQuantity.value) || 1;
-      const usePoints = dom.usePoints.checked;
-      
-      let basePrice = 0;
-      switch(type) {
-        case 'single': basePrice = 2.50; break;
-        case 'day': basePrice = 7.00; break;
-        case 'week': basePrice = 25.00; break;
-      }
-      
-      let total = basePrice * quantity;
-      let points = 10 * quantity;
-      
-      // Apply points discount if selected
-      if (usePoints && appState.userPoints >= 100) {
-        const discount = Math.min(Math.floor(appState.userPoints / 100), total);
-        total -= discount;
-        points = 0; // No points earned when using points for discount
-      }
-      
-      dom.ticketTotal.textContent = `$${total.toFixed(2)}`;
-      dom.pointsEarned.textContent = `${points} pts`;
-      dom.paymentAmount.textContent = `$${total.toFixed(2)}`;
-    }
-
-    function playAlertSound() {
-      // Create and play alert sound
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.type = 'sine';
-      oscillator.frequency.value = 800;
-      gainNode.gain.value = 0.5;
-      
-      oscillator.start();
-      
-      // Beep pattern for alert
-      setTimeout(() => {
-        oscillator.frequency.value = 600;
-      }, 200);
-      
-      setTimeout(() => {
-        oscillator.frequency.value = 800;
-      }, 400);
-      
-      setTimeout(() => {
-        oscillator.stop();
-      }, 600);
-    }
-
-    function showToast(message, type = 'info', ttl = 3500) {
-      const toastEl = document.createElement('div');
-      toastEl.className = `toast align-items-center text-bg-${type} border-0 show`;
-      toastEl.setAttribute('role', 'alert');
-      toastEl.setAttribute('aria-live', 'assertive');
-      toastEl.innerHTML = `
-        <div class="d-flex">
-          <div class="toast-body d-flex align-items-center">
-            <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : type === 'warning' ? 'bi-exclamation-triangle-fill' : type === 'danger' ? 'bi-x-circle-fill' : 'bi-info-circle-fill'} me-2"></i>
-            ${message}
-          </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-      `;
-      dom.toastContainer.appendChild(toastEl);
-      
-      const toast = new bootstrap.Toast(toastEl, { delay: ttl });
-      toast.show();
-      
-      toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-    }
-  </script>
+  <script src="assets/js/index.js"></script>
 </body>
-  </html>
+          </html>
