@@ -1160,7 +1160,7 @@
           <div class="mb-3" id="pointsRedeemSection" style="display: none;">
             <label for="usePoints" class="form-label">Use Points for Discount</label>
             <input type="number" class="form-control" id="usePoints" min="0" placeholder="Enter points to use">
-            <small class="text-muted">100 points = $1 discount</small>
+            <small class="text-muted">100 points = ₹15 discount</small>
           </div>
           <div class="alert alert-info">
             <div class="d-flex justify-content-between">
@@ -1259,23 +1259,9 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="loginModalLabel">Login</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button class="btn btn-light ms-auto" onclick="window.location.href='login.html'">Login</button>
         </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="email" placeholder="Enter email">
-          </div>
-          <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password" placeholder="Enter password">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="signInBtn">Sign In</button>
-          <button type="button" class="btn btn-outline-primary" id="signUpBtn">Sign Up</button>
-        </div>
+        
       </div>
     </div>
   </div>
