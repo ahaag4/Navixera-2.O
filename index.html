@@ -670,7 +670,36 @@
       margin: 1rem 0;
     }
 
-    /* Payment Gateway Styles */
+    /* Profile Section */
+    .profile-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .profile-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    /* History Section */
+    .history-item {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    /* Payment Section */
     .payment-methods {
       display: flex;
       gap: 10px;
@@ -697,11 +726,29 @@
     }
 
     .upi-input {
+      display: block;
+    }
+
+    .card-input, .wallet-input {
       display: none;
     }
 
-    .upi-input.active {
-      display: block;
+    /* Ticket Calculation */
+    .ticket-summary {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+
+    .ticket-summary p {
+      margin-bottom: 5px;
+    }
+
+    .ticket-summary .final-amount {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--primary-color);
     }
   </style>
 </head>
@@ -732,15 +779,17 @@
       </div>
       <div id="authSection" class="ms-auto d-flex align-items-center gap-2">
         <button id="loginBtn" class="btn btn-outline-primary">Login</button>
-        <div id="profileSection" class="d-none">
+        <div id="profileSection" class="profile-section d-none">
+          <div class="profile-avatar" id="profileAvatar">U</div>
           <div class="dropdown">
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-person-circle"></i> Profile
+              <span id="userName">User</span>
             </button>
             <ul class="dropdown-menu">
               <li><a class="dropdown-item" href="#" id="editProfileBtn">Edit Profile</a></li>
-              <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
               <li><a class="dropdown-item" href="#" id="historyBtn">History</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
             </ul>
           </div>
         </div>
@@ -923,62 +972,71 @@
 
   <!-- Buy Ticket Modal -->
   <div class="modal fade" id="buyTicketModal" tabindex="-1" aria-labelledby="buyTicketModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="buyTicketModalLabel">Buy Ticket</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="mb-3">
-            <label for="ticketFrom" class="form-label">From</label>
-            <input type="text" class="form-control" id="ticketFrom" placeholder="Enter starting point">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="ticketBusSelect" class="form-label">Select Bus</label>
+                <select class="form-select" id="ticketBusSelect">
+                  <option value="">Select a bus</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="passengerCount" class="form-label">Number of Passengers</label>
+                <select class="form-select" id="passengerCount">
+                  <option value="1">1 Passenger</option>
+                  <option value="2">2 Passengers</option>
+                  <option value="3">3 Passengers</option>
+                  <option value="4">4 Passengers</option>
+                  <option value="5">5 Passengers</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="ticketFrom" class="form-label">From</label>
+                <select class="form-select" id="ticketFrom">
+                  <option value="">Select starting stop</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="ticketTo" class="form-label">To</label>
+                <select class="form-select" id="ticketTo">
+                  <option value="">Select destination stop</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div class="mb-3">
-            <label for="ticketTo" class="form-label">To</label>
-            <input type="text" class="form-control" id="ticketTo" placeholder="Enter destination">
-          </div>
-          <div class="mb-3">
-            <label for="ticketBusSelect" class="form-label">Select Bus</label>
-            <select class="form-select" id="ticketBusSelect">
-              <option value="">Select a bus</option>
-            </select>
-          </div>
+          
           <div class="mb-3" id="pointsRedeemSection" style="display: none;">
             <label for="usePoints" class="form-label">Use Points for Discount</label>
             <input type="number" class="form-control" id="usePoints" min="0" placeholder="Enter points to use">
             <small class="text-muted">100 points = ₹10 discount</small>
           </div>
+          
+          <div class="ticket-summary">
+            <h6>Ticket Summary</h6>
+            <div id="ticketSummaryContent">
+              <p>Please select a bus and stops to see fare details</p>
+            </div>
+          </div>
+          
           <div class="payment-methods mb-3">
             <div class="payment-method active" data-method="upi">
               <i class="bi bi-phone"></i> UPI
             </div>
-            <div class="payment-method" data-method="card">
-              <i class="bi bi-credit-card"></i> Card
-            </div>
-            <div class="payment-method" data-method="wallet">
-              <i class="bi bi-wallet2"></i> Wallet
-            </div>
           </div>
-          <div class="mb-3 upi-input active">
+          
+          <div class="mb-3 upi-input">
             <label for="upiId" class="form-label">UPI ID</label>
             <input type="text" class="form-control" id="upiId" placeholder="Enter your UPI ID">
           </div>
-          <div class="mb-3 card-input upi-input">
-            <label for="cardNumber" class="form-label">Card Number</label>
-            <input type="text" class="form-control" id="cardNumber" placeholder="Enter card number">
-          </div>
-          <div class="mb-3 wallet-input upi-input">
-            <label for="walletSelect" class="form-label">Select Wallet</label>
-            <select class="form-select" id="walletSelect">
-              <option value="paytm">Paytm</option>
-              <option value="phonepe">PhonePe</option>
-              <option value="gpay">Google Pay</option>
-            </select>
-          </div>
-          <p>Total Amount: ₹<span id="ticketAmount">100</span></p>
-          <p>Discount: ₹<span id="discountAmount">0</span></p>
-          <p class="fw-bold">Final Amount: ₹<span id="finalAmount">100</span></p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1025,6 +1083,10 @@
             <input type="email" class="form-control" id="profileEmail" placeholder="Enter email" disabled>
           </div>
           <div class="mb-3">
+            <label for="profilePhone" class="form-label">Phone</label>
+            <input type="tel" class="form-control" id="profilePhone" placeholder="Enter phone number">
+          </div>
+          <div class="mb-3">
             <label for="emergencyContacts" class="form-label">Emergency Contacts (comma-separated)</label>
             <input type="text" class="form-control" id="emergencyContacts" placeholder="e.g., +1234567890, +0987654321">
           </div>
@@ -1046,7 +1108,30 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <ul id="historyList" class="list-group"></ul>
+          <div id="historyTabs">
+            <ul class="nav nav-tabs" id="historyTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tickets-tab" data-bs-toggle="tab" data-bs-target="#tickets" type="button" role="tab" aria-controls="tickets" aria-selected="true">Tickets</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="points-tab" data-bs-toggle="tab" data-bs-target="#points" type="button" role="tab" aria-controls="points" aria-selected="false">Points</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="alerts-tab" data-bs-toggle="tab" data-bs-target="#alerts" type="button" role="tab" aria-controls="alerts" aria-selected="false">Alerts</button>
+              </li>
+            </ul>
+            <div class="tab-content p-3" id="historyTabContent">
+              <div class="tab-pane fade show active" id="tickets" role="tabpanel" aria-labelledby="tickets-tab">
+                <div id="ticketHistoryList"></div>
+              </div>
+              <div class="tab-pane fade" id="points" role="tabpanel" aria-labelledby="points-tab">
+                <div id="pointsHistoryList"></div>
+              </div>
+              <div class="tab-pane fade" id="alerts" role="tabpanel" aria-labelledby="alerts-tab">
+                <div id="alertHistoryList"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1159,6 +1244,8 @@
         confirmLocation: document.getElementById('confirmLocation'),
         loginBtn: document.getElementById('loginBtn'),
         profileSection: document.getElementById('profileSection'),
+        profileAvatar: document.getElementById('profileAvatar'),
+        userName: document.getElementById('userName'),
         logoutBtn: document.getElementById('logoutBtn'),
         editProfileBtn: document.getElementById('editProfileBtn'),
         historyBtn: document.getElementById('historyBtn'),
@@ -1167,8 +1254,12 @@
         payTicketBtn: document.getElementById('payTicketBtn'),
         profileName: document.getElementById('profileName'),
         profileEmail: document.getElementById('profileEmail'),
+        profilePhone: document.getElementById('profilePhone'),
         saveProfileBtn: document.getElementById('saveProfileBtn'),
         historyList: document.getElementById('historyList'),
+        ticketHistoryList: document.getElementById('ticketHistoryList'),
+        pointsHistoryList: document.getElementById('pointsHistoryList'),
+        alertHistoryList: document.getElementById('alertHistoryList'),
         safetyBtn: document.getElementById('safetyBtn'),
         languageSelect: document.getElementById('languageSelect'),
         pointsSection: document.getElementById('pointsSection'),
@@ -1185,12 +1276,9 @@
         pointsRedeemSection: document.getElementById('pointsRedeemSection'),
         ticketFrom: document.getElementById('ticketFrom'),
         ticketTo: document.getElementById('ticketTo'),
-        ticketAmount: document.getElementById('ticketAmount'),
-        discountAmount: document.getElementById('discountAmount'),
-        finalAmount: document.getElementById('finalAmount'),
+        passengerCount: document.getElementById('passengerCount'),
+        ticketSummaryContent: document.getElementById('ticketSummaryContent'),
         upiId: document.getElementById('upiId'),
-        cardNumber: document.getElementById('cardNumber'),
-        walletSelect: document.getElementById('walletSelect'),
         confirmSafetyAlertBtn: document.getElementById('confirmSafetyAlertBtn')
       };
 
@@ -1210,6 +1298,7 @@
       let currentUser = null;
       let userData = {};
       let currentChatBus = null;
+      let currentSelectedBus = null;
       let languages = {
         en: {
           title: 'Live Public Transit Dashboard — Navixera',
@@ -1775,7 +1864,7 @@
         currentUser = user;
         if (user) {
           dom.loginBtn.style.display = 'none';
-          dom.profileSection.style.display = 'block';
+          dom.profileSection.classList.remove('d-none');
           dom.pointsSection.style.display = 'block';
           loadUserData(user.uid);
           updateTicketBusSelect();
@@ -1783,7 +1872,7 @@
           dom.pointsRedeemSection.style.display = 'block';
         } else {
           dom.loginBtn.style.display = 'block';
-          dom.profileSection.style.display = 'none';
+          dom.profileSection.classList.add('d-none');
           dom.pointsSection.style.display = 'none';
           userData = {};
           dom.userPoints.textContent = '0';
@@ -1797,16 +1886,37 @@
 
       const loadUserData = (uid) => {
         db.ref(`users/${uid}`).on('value', snap => {
-          userData = snap.val() || { points: 0, history: [], name: '', emergencyContacts: [] };
+          userData = snap.val() || { 
+            points: 0, 
+            history: [], 
+            name: '', 
+            email: '',
+            phone: '',
+            emergencyContacts: [] 
+          };
           dom.userPoints.textContent = userData.points || 0;
+          dom.userName.textContent = userData.name || 'User';
+          dom.profileAvatar.textContent = userData.name ? userData.name.charAt(0).toUpperCase() : 'U';
+          
+          // Update profile modal
+          dom.profileName.value = userData.name || '';
+          dom.profileEmail.value = userData.email || currentUser.email || '';
+          dom.profilePhone.value = userData.phone || '';
+          dom.emergencyContacts.value = (userData.emergencyContacts || []).join(', ');
         });
       };
 
       const saveProfile = () => {
         if (!currentUser) return;
         const name = dom.profileName.value;
+        const phone = dom.profilePhone.value;
         const contacts = dom.emergencyContacts.value.split(',').map(c => c.trim());
-        db.ref(`users/${currentUser.uid}`).update({ name, emergencyContacts: contacts })
+        db.ref(`users/${currentUser.uid}`).update({ 
+          name, 
+          phone,
+          emergencyContacts: contacts,
+          email: currentUser.email
+        })
           .then(() => {
             showToast('Profile updated', 'success');
             bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
@@ -1816,14 +1926,67 @@
       const showEditProfile = () => {
         dom.profileName.value = userData.name || '';
         dom.profileEmail.value = currentUser.email || '';
+        dom.profilePhone.value = userData.phone || '';
         dom.emergencyContacts.value = (userData.emergencyContacts || []).join(', ');
         new bootstrap.Modal(document.getElementById('editProfileModal')).show();
       };
 
       const showHistory = () => {
-        dom.historyList.innerHTML = (userData.history || []).map(h => `
-          <li class="list-group-item">${h.type}: ${h.details} on ${new Date(h.timestamp).toLocaleString()}</li>
-        `).join('') || '<li class="list-group-item text-muted">No history yet.</li>';
+        // Load ticket history
+        const ticketHistory = (userData.history || []).filter(h => h.type === 'Ticket Purchase');
+        dom.ticketHistoryList.innerHTML = ticketHistory.length > 0 ? 
+          ticketHistory.map(h => `
+            <div class="history-item">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <strong>${h.details}</strong><br>
+                  <small class="text-muted">${new Date(h.timestamp).toLocaleString()}</small>
+                </div>
+                <div class="text-end">
+                  <span class="badge bg-success">₹${h.amount || '0'}</span><br>
+                  <small class="text-muted">${h.passengers || 1} passenger(s)</small>
+                </div>
+              </div>
+            </div>
+          `).join('') : 
+          '<div class="text-center p-3 text-muted">No ticket history yet.</div>';
+        
+        // Load points history
+        const pointsHistory = (userData.history || []).filter(h => h.type === 'Points');
+        dom.pointsHistoryList.innerHTML = pointsHistory.length > 0 ? 
+          pointsHistory.map(h => `
+            <div class="history-item">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <strong>${h.details}</strong><br>
+                  <small class="text-muted">${new Date(h.timestamp).toLocaleString()}</small>
+                </div>
+                <div>
+                  <span class="badge ${h.points > 0 ? 'bg-success' : 'bg-warning'}">${h.points > 0 ? '+' : ''}${h.points} points</span>
+                </div>
+              </div>
+            </div>
+          `).join('') : 
+          '<div class="text-center p-3 text-muted">No points history yet.</div>';
+        
+        // Load alert history
+        const alertHistory = (userData.history || []).filter(h => h.type === 'Safety Alert');
+        dom.alertHistoryList.innerHTML = alertHistory.length > 0 ? 
+          alertHistory.map(h => `
+            <div class="history-item">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <strong>${h.details}</strong><br>
+                  <small class="text-muted">${new Date(h.timestamp).toLocaleString()}</small>
+                </div>
+                <div>
+                  <span class="badge bg-danger">Alert</span>
+                </div>
+              </div>
+            </div>
+          `).join('') : 
+          '<div class="text-center p-3 text-muted">No alert history yet.</div>';
+        
         new bootstrap.Modal(document.getElementById('historyModal')).show();
       };
 
@@ -1832,7 +1995,18 @@
         const lastCheckIn = userData.lastCheckIn || 0;
         if (Date.now() - lastCheckIn > 86400000) { // 24 hours
           const newPoints = (userData.points || 0) + 10;
-          db.ref(`users/${currentUser.uid}`).update({ points: newPoints, lastCheckIn: Date.now() })
+          const history = userData.history || [];
+          history.push({ 
+            type: 'Points', 
+            details: 'Daily check-in', 
+            points: 10,
+            timestamp: Date.now() 
+          });
+          db.ref(`users/${currentUser.uid}`).update({ 
+            points: newPoints, 
+            lastCheckIn: Date.now(),
+            history
+          })
             .then(() => showToast('Checked in! +10 points', 'success'));
         } else {
           showToast('You can check in once per day.', 'warning');
@@ -1982,16 +2156,112 @@
         });
       };
 
-      const calculateTicketPrice = () => {
-        const basePrice = 100;
+      const updateTicketStops = (busId) => {
+        if (!busId || !vehiclesData[busId]) {
+          dom.ticketFrom.innerHTML = '<option value="">Select starting stop</option>';
+          dom.ticketTo.innerHTML = '<option value="">Select destination stop</option>';
+          return;
+        }
+
+        const stops = vehiclesData[busId].stops || [];
+        dom.ticketFrom.innerHTML = '<option value="">Select starting stop</option>';
+        dom.ticketTo.innerHTML = '<option value="">Select destination stop</option>';
+
+        stops.forEach((stop, index) => {
+          const optionFrom = document.createElement('option');
+          optionFrom.value = index;
+          optionFrom.textContent = `${index + 1}. ${stop.name || 'Unnamed Stop'}`;
+          dom.ticketFrom.appendChild(optionFrom);
+
+          const optionTo = document.createElement('option');
+          optionTo.value = index;
+          optionTo.textContent = `${index + 1}. ${stop.name || 'Unnamed Stop'}`;
+          dom.ticketTo.appendChild(optionTo);
+        });
+
+        // Auto-select nearest stop as "From" if user location is available
+        if (userLocation && stops.length > 0) {
+          let nearestStopIndex = 0;
+          let minDistance = Infinity;
+
+          stops.forEach((stop, index) => {
+            const coords = parseGps(stop.gps);
+            if (coords) {
+              const distance = calculateDistance(
+                userLocation[0], userLocation[1],
+                coords[0], coords[1]
+              );
+              if (distance < minDistance) {
+                minDistance = distance;
+                nearestStopIndex = index;
+              }
+            }
+          });
+
+          if (minDistance < 2) { // Within 2km
+            dom.ticketFrom.value = nearestStopIndex;
+          }
+        }
+
+        // Calculate fare when stops are selected
+        calculateTicketFare();
+      };
+
+      const calculateTicketFare = () => {
+        const busId = dom.ticketBusSelect.value;
+        const fromIndex = parseInt(dom.ticketFrom.value);
+        const toIndex = parseInt(dom.ticketTo.value);
+        const passengerCount = parseInt(dom.passengerCount.value) || 1;
         const pointsToUse = parseInt(dom.usePoints.value) || 0;
-        const discount = Math.min(pointsToUse / 10, basePrice); // 100 points = ₹10 discount
-        const finalPrice = basePrice - discount;
-        
-        dom.discountAmount.textContent = discount.toFixed(2);
-        dom.finalAmount.textContent = finalPrice.toFixed(2);
-        
-        return finalPrice;
+
+        if (!busId || isNaN(fromIndex) || isNaN(toIndex) || fromIndex >= toIndex) {
+          dom.ticketSummaryContent.innerHTML = '<p>Please select a bus and valid stops to see fare details</p>';
+          return;
+        }
+
+        // Calculate fare based on distance between stops
+        const stops = vehiclesData[busId].stops || [];
+        const baseFarePerKm = 5; // ₹5 per km
+        let totalDistance = 0;
+
+        // Calculate approximate distance between selected stops
+        for (let i = fromIndex; i < toIndex; i++) {
+          const stop1 = stops[i];
+          const stop2 = stops[i + 1];
+          const coords1 = parseGps(stop1.gps);
+          const coords2 = parseGps(stop2.gps);
+          
+          if (coords1 && coords2) {
+            totalDistance += calculateDistance(coords1[0], coords1[1], coords2[0], coords2[1]);
+          } else {
+            // If GPS data is missing, estimate 1km per stop
+            totalDistance += 1;
+          }
+        }
+
+        const baseFare = Math.max(10, Math.round(totalDistance * baseFarePerKm)); // Minimum ₹10
+        const totalFare = baseFare * passengerCount;
+        const discount = Math.min(pointsToUse / 10, totalFare); // 100 points = ₹10 discount
+        const finalFare = Math.max(0, totalFare - discount);
+
+        dom.ticketSummaryContent.innerHTML = `
+          <div class="d-flex justify-content-between">
+            <span>Base Fare (${passengerCount} passenger${passengerCount > 1 ? 's' : ''}):</span>
+            <span>₹${totalFare}</span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span>Points Discount:</span>
+            <span>-₹${discount.toFixed(2)}</span>
+          </div>
+          <hr>
+          <div class="d-flex justify-content-between final-amount">
+            <span>Final Amount:</span>
+            <span>₹${finalFare.toFixed(2)}</span>
+          </div>
+          <small class="text-muted">Distance: ${totalDistance.toFixed(1)} km</small>
+        `;
+
+        return finalFare;
       };
 
       const buyTicket = () => {
@@ -1999,15 +2269,20 @@
           showToast('Please login to buy ticket.', 'warning');
           return;
         }
-        const from = dom.ticketFrom.value;
-        const to = dom.ticketTo.value;
-        const bus = dom.ticketBusSelect.value;
+        const busId = dom.ticketBusSelect.value;
+        const fromIndex = parseInt(dom.ticketFrom.value);
+        const toIndex = parseInt(dom.ticketTo.value);
+        const passengerCount = parseInt(dom.passengerCount.value) || 1;
         const pointsToUse = parseInt(dom.usePoints.value) || 0;
-        const paymentMethod = document.querySelector('.payment-method.active').dataset.method;
-        const finalPrice = calculateTicketPrice();
+        const upiId = dom.upiId.value;
+        const finalFare = calculateTicketFare();
         
-        if (!from || !to || !bus) {
-          showToast('Please fill all fields.', 'warning');
+        if (!busId || isNaN(fromIndex) || isNaN(toIndex) || fromIndex >= toIndex) {
+          showToast('Please select a bus and valid stops.', 'warning');
+          return;
+        }
+        if (!upiId) {
+          showToast('Please enter your UPI ID.', 'warning');
           return;
         }
         if (pointsToUse > (userData.points || 0)) {
@@ -2022,13 +2297,40 @@
           showToast('Payment successful! Ticket purchased.', 'success');
           const newPoints = (userData.points || 0) - pointsToUse + 20; // +20 for purchase
           const history = userData.history || [];
+          const stops = vehiclesData[busId].stops || [];
+          const fromStop = stops[fromIndex]?.name || `Stop ${fromIndex + 1}`;
+          const toStop = stops[toIndex]?.name || `Stop ${toIndex + 1}`;
+          
           history.push({ 
             type: 'Ticket Purchase', 
-            details: `From ${from} to ${to} on bus ${bus} via ${paymentMethod}`, 
-            amount: finalPrice,
+            details: `From ${fromStop} to ${toStop} on bus ${busId}`, 
+            amount: finalFare,
+            passengers: passengerCount,
             timestamp: Date.now() 
           });
-          db.ref(`users/${currentUser.uid}`).update({ points: newPoints, history });
+          
+          // Add points history
+          if (pointsToUse > 0) {
+            history.push({
+              type: 'Points',
+              details: 'Points used for ticket discount',
+              points: -pointsToUse,
+              timestamp: Date.now()
+            });
+          }
+          
+          // Add points for purchase
+          history.push({
+            type: 'Points',
+            details: 'Points earned from ticket purchase',
+            points: 20,
+            timestamp: Date.now()
+          });
+          
+          db.ref(`users/${currentUser.uid}`).update({ 
+            points: newPoints, 
+            history 
+          });
           bootstrap.Modal.getInstance(document.getElementById('buyTicketModal')).hide();
         }, 2000);
       };
@@ -2111,7 +2413,17 @@
           dom.chatInput.value = '';
           // Award points
           const newPoints = (userData.points || 0) + 5;
-          db.ref(`users/${currentUser.uid}`).update({ points: newPoints });
+          const history = userData.history || [];
+          history.push({
+            type: 'Points',
+            details: 'Points earned from chat activity',
+            points: 5,
+            timestamp: Date.now()
+          });
+          db.ref(`users/${currentUser.uid}`).update({ 
+            points: newPoints,
+            history
+          });
         }
       };
 
@@ -2378,7 +2690,13 @@
 
         // Ticket
         if (dom.payTicketBtn) dom.payTicketBtn.addEventListener('click', buyTicket);
-        if (dom.usePoints) dom.usePoints.addEventListener('input', calculateTicketPrice);
+        if (dom.usePoints) dom.usePoints.addEventListener('input', calculateTicketFare);
+        if (dom.ticketBusSelect) dom.ticketBusSelect.addEventListener('change', (e) => {
+          updateTicketStops(e.target.value);
+        });
+        if (dom.ticketFrom) dom.ticketFrom.addEventListener('change', calculateTicketFare);
+        if (dom.ticketTo) dom.ticketTo.addEventListener('change', calculateTicketFare);
+        if (dom.passengerCount) dom.passengerCount.addEventListener('change', calculateTicketFare);
 
         // Safety
         if (dom.safetyBtn) dom.safetyBtn.addEventListener('click', sendSafetyAlert);
@@ -2396,18 +2714,8 @@
         // Chat
         if (dom.chatBusSelect) dom.chatBusSelect.addEventListener('change', (e) => startChat(e.target.value));
         if (dom.sendChatBtn) dom.sendChatBtn.addEventListener('click', sendChat);
-
-        // Payment methods
-        document.querySelectorAll('.payment-method').forEach(method => {
-          method.addEventListener('click', function() {
-            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Show appropriate input fields
-            const methodType = this.dataset.method;
-            document.querySelectorAll('.upi-input').forEach(input => input.classList.remove('active'));
-            document.querySelector(`.${methodType}-input`).classList.add('active');
-          });
+        if (dom.chatInput) dom.chatInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') sendChat();
         });
       };
 
