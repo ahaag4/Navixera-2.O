@@ -42,19 +42,13 @@ export async function initializeDashboard() {
       console.log("✅ User Role:", role);
 
       switch (role) {
-        case "customer":
-          window.location.href = "sms.html";
+        case "user":
+          window.location.href = "index.html";
           break;
         case "driver":
           window.location.href = "driver.html";
           break;
-        case "parent":
-          window.location.href = "parents-dash-navixera.html";
-          break;
-        case "school-transport":
-          window.location.href = "school-tran-dash.html";
-          break;
-        case "company":
+        case "manager":
           window.location.href = "public-tran-admin.html";
           break;
         case "super-admin":
