@@ -3179,66 +3179,167 @@
         bootstrap.Modal.getInstance(document.getElementById('safetyModal')).hide();
       };
 
-      // Chat Functions
-      const updateChatBusSelect = () => {
-        dom.chatBusSelect.innerHTML = '<option value="">Select Bus to Chat</option>';
-        Object.keys(vehiclesData).forEach(vid => {
-          const option = document.createElement('option');
-          option.value = vid;
-          option.textContent = `${vid} - ${vehiclesData[vid].routeName || 'Unknown'}`;
-          dom.chatBusSelect.appendChild(option);
-        });
-      };
+// Chat Functions
+const updateChatBusSelect = () => {
+  if (!dom.chatBusSelect) return;
+  
+  dom.chatBusSelect.innerHTML = '<option value="">Select Bus to Chat</option>';
+  Object.keys(vehiclesData).forEach(vid => {
+    const option = document.createElement('option');
+    option.value = vid;
+    option.textContent = `${vid} - ${vehiclesData[vid].routeName || 'Unknown'}`;
+    dom.chatBusSelect.appendChild(option);
+  });
+};
 
-      const startChat = (busId) => {
-        if (currentChatBus) {
-          db.ref(`chats/${currentChatBus}`).off();
-        }
-        currentChatBus = busId;
-        dom.chatMessages.innerHTML = '';
-        db.ref(`chats/${busId}`).on('child_added', snap => {
-          const msg = snap.val();
-          const div = document.createElement('div');
-          div.textContent = `${msg.user}: ${msg.text}`;
-          dom.chatMessages.appendChild(div);
-          dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
-        });
-      };
+const startChat = (busId) => {
+  if (!busId) {
+    dom.chatMessages.innerHTML = '<div class="text-muted text-center p-3">Please select a bus to start chatting</div>';
+    return;
+  }
+  
+  // Stop listening to previous chat
+  if (currentChatBus) {
+    db.ref(`chats/${currentChatBus}`).off();
+  }
+  
+  currentChatBus = busId;
+  dom.chatMessages.innerHTML = '<div class="text-muted text-center p-3"><div class="spinner-border spinner-border-sm me-2"></div>Loading chat...</div>';
+  
+  // Listen for new messages
+  db.ref(`chats/${busId}`).orderByChild('timestamp').limitToLast(50).on('value', (snapshot) => {
+    const messages = snapshot.val() || {};
+    dom.chatMessages.innerHTML = '';
+    
+    if (Object.keys(messages).length === 0) {
+      dom.chatMessages.innerHTML = '<div class="text-muted text-center p-3">No messages yet. Start the conversation!</div>';
+      return;
+    }
+    
+    // Convert to array and sort by timestamp
+    const messagesArray = Object.entries(messages).map(([key, value]) => ({
+      id: key,
+      ...value
+    })).sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Display messages
+    messagesArray.forEach(msg => {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `mb-2 ${msg.user === (currentUser?.displayName || userData?.name) ? 'text-end' : ''}`;
+      
+      const messageBubble = document.createElement('div');
+      messageBubble.className = `d-inline-block p-2 rounded ${msg.user === (currentUser?.displayName || userData?.name) ? 'bg-primary text-white' : 'bg-light'}`;
+      messageBubble.style.maxWidth = '80%';
+      
+      messageBubble.innerHTML = `
+        <div class="fw-bold small">${msg.user || 'Anonymous'}</div>
+        <div>${msg.text}</div>
+        <div class="small opacity-75 mt-1">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+      `;
+      
+      messageDiv.appendChild(messageBubble);
+      dom.chatMessages.appendChild(messageDiv);
+    });
+    
+    // Scroll to bottom
+    dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
+  }, (error) => {
+    console.error('Chat error:', error);
+    dom.chatMessages.innerHTML = '<div class="text-danger text-center p-3">Failed to load chat</div>';
+  });
+};
 
-      const sendChat = () => {
-        if (!currentUser || !currentChatBus) {
-          showToast('Select a bus and login to chat.', 'warning');
-          return;
-        }
-        // Check if user is near bus
-        const busCoords = parseGps(vehiclesData[currentChatBus].gps);
-        if (!busCoords || calculateDistance(userLocation[0], userLocation[1], busCoords[0], busCoords[1]) > 0.5) {
-          showToast('You must be near the bus to chat.', 'warning');
-          return;
-        }
-        const text = dom.chatInput.value.trim();
-        if (text) {
-          db.ref(`chats/${currentChatBus}`).push({
-            user: currentUser.name,
-            text,
-            timestamp: Date.now()
-          });
-          dom.chatInput.value = '';
-          // Award points
-          const newPoints = (userData.points || 0) + 0.5;
-          const history = userData.history || [];
-          history.push({
-            type: 'Points',
-            details: 'Points earned from chat activity',
-            points: 0.5,
-            timestamp: Date.now()
-          });
-          db.ref(`users/${currentUser.uid}`).update({ 
-            points: newPoints,
-            history
-          });
-        }
-      };
+const sendChat = () => {
+  if (!currentUser) {
+    showToast('Please login to chat.', 'warning');
+    return;
+  }
+  
+  if (!currentChatBus) {
+    showToast('Please select a bus first.', 'warning');
+    return;
+  }
+  
+  const text = dom.chatInput?.value.trim() || '';
+  if (!text) {
+    showToast('Please enter a message.', 'warning');
+    return;
+  }
+  
+  // Check if user is near the bus (optional, can be removed if too restrictive)
+  if (userLocation && vehiclesData[currentChatBus]) {
+    const busCoords = parseGps(vehiclesData[currentChatBus].gps);
+    if (busCoords) {
+      const distance = calculateDistance(
+        userLocation[0], userLocation[1],
+        busCoords[0], busCoords[1]
+      );
+      if (distance > 2) { // Increased to 2km for better usability
+        showToast('You must be within 2km of the bus to chat.', 'warning');
+        return;
+      }
+    }
+  }
+  
+  // Send message
+  const messageData = {
+    user: currentUser.displayName || userData?.name || 'Anonymous',
+    text: text,
+    timestamp: Date.now(),
+    userId: currentUser.uid
+  };
+  
+  db.ref(`chats/${currentChatBus}`).push(messageData)
+    .then(() => {
+      // Clear input
+      if (dom.chatInput) dom.chatInput.value = '';
+      
+      // Award points for chatting
+      if (currentUser) {
+        const newPoints = (userData.points || 0) + 1; // 1 point per message
+        const history = userData.history || [];
+        history.push({
+          type: 'Points',
+          details: 'Points earned from chat activity',
+          points: 1,
+          timestamp: Date.now()
+        });
+        
+        db.ref(`users/${currentUser.uid}`).update({ 
+          points: newPoints,
+          history
+        }).then(() => {
+          // Update local points display
+          dom.userPoints.textContent = newPoints;
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error sending message:', error);
+      showToast('Failed to send message. Please try again.', 'danger');
+    });
+};
+
+// Update the chat modal event listeners
+const initializeChatModal = () => {
+  const chatModal = document.getElementById('chatModal');
+  if (chatModal) {
+    chatModal.addEventListener('show.bs.modal', () => {
+      // Refresh bus list when modal opens
+      updateChatBusSelect();
+    });
+    
+    chatModal.addEventListener('hidden.bs.modal', () => {
+      // Clean up when modal closes
+      if (currentChatBus) {
+        db.ref(`chats/${currentChatBus}`).off();
+        currentChatBus = null;
+      }
+      if (dom.chatMessages) dom.chatMessages.innerHTML = '';
+      if (dom.chatInput) dom.chatInput.value = '';
+    });
+  }
+};
 
       // Data & Business Logic
       const loadPublicVehicles = () => {
@@ -3514,74 +3615,4 @@
 
         // Payment method selection
         document.querySelectorAll('.payment-method').forEach(method => {
-          method.addEventListener('click', function() {
-            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Show/hide payment input fields
-            const methodType = this.getAttribute('data-method');
-            if (methodType === 'upi') {
-              document.querySelector('.upi-input').style.display = 'block';
-            } else {
-              document.querySelector('.upi-input').style.display = 'none';
-            }
-          });
-        });
-
-        // Download ticket
-        if (dom.downloadTicketBtn) dom.downloadTicketBtn.addEventListener('click', function() {
-          // In a real implementation, this would generate a downloadable ticket
-          showToast('Ticket download feature would be implemented here', 'info');
-        });
-
-        // Safety
-        if (dom.safetyBtn) dom.safetyBtn.addEventListener('click', sendSafetyAlert);
-        if (dom.confirmSafetyAlertBtn) dom.confirmSafetyAlertBtn.addEventListener('click', confirmSafetyAlert);
-
-        // Language
-        if (dom.languageSelect) dom.languageSelect.addEventListener('change', (e) => {
-          currentLang = e.target.value;
-          updateLanguage();
-        });
-
-        // Points
-        if (dom.dailyCheckInBtn) dom.dailyCheckInBtn.addEventListener('click', dailyCheckIn);
-
-        // Chat
-        if (dom.chatBusSelect) dom.chatBusSelect.addEventListener('change', (e) => startChat(e.target.value));
-        if (dom.sendChatBtn) dom.sendChatBtn.addEventListener('click', sendChat);
-        if (dom.chatInput) dom.chatInput.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') sendChat();
-        });
-      };
-
-      // Initialization
-      document.addEventListener('DOMContentLoaded', () => {
-        showLoader();
-
-        // Load any saved bus alerts
-        const savedAlerts = localStorage.getItem('busAlerts');
-        if (savedAlerts) {
-          try { busAlerts = JSON.parse(savedAlerts); } catch (e) { busAlerts = {}; }
-        }
-
-        auth.onAuthStateChanged(handleAuthState);
-
-        initMap();
-        loadPublicVehicles();
-        loadBusStops();
-        addEventListeners();
-
-        // Start checking for bus alerts
-        alertCheckInterval = setInterval(checkBusAlerts, 10000); // Check every 10 seconds
-
-        // initial locate, but don't block if fails
-        locateUser().catch(() => {
-          console.log("Initial geolocation attempt failed; user can manually trigger location.");
-          hideLoader();
-        });
-      });
-    })();
-  </script>
-</body>
-  </html>
+ 
