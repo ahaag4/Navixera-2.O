@@ -2406,7 +2406,7 @@
         const text = dom.chatInput.value.trim();
         if (text) {
           db.ref(`chats/${currentChatBus}`).push({
-            user: currentUser.email,
+            user: currentUser.name,
             text,
             timestamp: Date.now()
           });
@@ -2417,7 +2417,7 @@
           history.push({
             type: 'Points',
             details: 'Points earned from chat activity',
-            points: 5,
+            points: 0.5,
             timestamp: Date.now()
           });
           db.ref(`users/${currentUser.uid}`).update({ 
