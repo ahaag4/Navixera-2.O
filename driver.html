@@ -1,1349 +1,900 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Conductor Dashboard — Navixera</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conductor Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  
-  <!-- QR Code Library -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  
   <style>
     :root {
       --primary-color: #2563eb;
-      --primary-rgb: 37, 99, 235;
       --primary-hover: #1d4ed8;
-      --secondary-color: #64748b;
-      --accent-color: #8b5cf6;
       --success-color: #10b981;
       --warning-color: #f59e0b;
       --danger-color: #ef4444;
       --bg-light: #f8fafc;
       --card-bg: #ffffff;
-      --card-border: #e2e8f0;
       --text-primary: #1e293b;
       --text-secondary: #64748b;
-      --text-muted: #94a3b8;
-      --font-family: 'Inter', sans-serif;
-      --border-radius: 12px;
-      --border-radius-sm: 8px;
-      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: var(--font-family);
+    
+    body {
       background-color: var(--bg-light);
-      color: var(--text-primary);
-      line-height: 1.5;
+      font-family: 'Segoe UI', system-ui, sans-serif;
     }
-
+    
     .navbar {
       background: var(--card-bg);
-      box-shadow: var(--shadow-sm);
-      padding: 0.75rem 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
-    .navbar-brand {
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      color: var(--primary-color);
-      font-size: 1.25rem;
-    }
-
-    .navbar-brand svg {
-      color: var(--primary-color);
-    }
-
+    
     .card {
-      border: 1px solid var(--card-border);
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow-sm);
-      transition: var(--transition);
-      background: var(--card-bg);
-      overflow: hidden;
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
     }
-
+    
     .card:hover {
       transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-
-    .card-header {
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--card-border);
-      padding: 1rem 1.25rem;
-      font-weight: 600;
-    }
-
-    .card-title {
-      color: var(--text-primary);
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .card-body {
-      padding: 1.25rem;
-    }
-
-    #map {
-      height: 60vh;
-      min-height: 400px;
-      border-radius: var(--border-radius);
-      z-index: 1;
-    }
-
-    .map-card {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .map-controls {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      z-index: 401;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .map-controls .btn {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-md);
-      transition: var(--transition);
-    }
-
-    .map-controls .btn:hover {
-      transform: scale(1.05);
-    }
-
-    .loader-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.85);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-      transition: opacity 0.3s ease;
-      opacity: 1;
-      backdrop-filter: blur(4px);
-    }
-
-    .loader-overlay.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .btn {
-      border-radius: var(--border-radius-sm);
-      padding: 0.75rem 1.5rem;
-      font-weight: 500;
-      transition: var(--transition);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-
-    .btn-primary {
-      background-color: var(--primary-color);
-      border-color: var(--primary-color);
-    }
-
-    .btn-primary:hover {
-      background-color: var(--primary-hover);
-      border-color: var(--primary-hover);
-      transform: translateY(-1px);
-    }
-
-    .btn-success {
-      background-color: var(--success-color);
-      border-color: var(--success-color);
-    }
-
-    .btn-warning {
-      background-color: var(--warning-color);
-      border-color: var(--warning-color);
-    }
-
-    .btn-danger {
-      background-color: var(--danger-color);
-      border-color: var(--danger-color);
-    }
-
-    .btn-light {
-      background-color: white;
-      border-color: var(--card-border);
-    }
-
-    .btn-light:hover {
-      background-color: #f8f9fa;
-      border-color: #d1d7e0;
-    }
-
-    .form-control {
-      border: 1px solid var(--card-border);
-      border-radius: var(--border-radius-sm);
-      padding: 0.75rem 1rem;
-      font-size: 0.9rem;
-      transition: var(--transition);
-    }
-
-    .form-control:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-    }
-
-    .ticket-card {
-      border: 2px solid var(--primary-color);
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 1rem;
-      background: white;
-      position: relative;
-    }
-
-    .ticket-header {
-      background: var(--primary-color);
-      color: white;
-      padding: 0.75rem 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .ticket-body {
+    
+    .status-btn {
       padding: 1rem;
-    }
-
-    .ticket-qr {
-      text-align: center;
-      margin: 1rem 0;
-    }
-
-    .ticket-qr canvas {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 10px;
-      background: white;
-    }
-
-    .ticket-status {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 0.8rem;
+      font-size: 1.1rem;
       font-weight: 600;
+      border-radius: 10px;
+      transition: all 0.3s ease;
     }
-
-    .ticket-expired {
-      border-color: var(--danger-color);
+    
+    .status-btn:hover {
+      transform: translateY(-2px);
     }
-
-    .ticket-expired .ticket-header {
-      background: var(--danger-color);
-    }
-
-    .ticket-used {
-      border-color: var(--warning-color);
-    }
-
-    .ticket-used .ticket-header {
-      background: var(--warning-color);
-    }
-
-    .ticket-active {
-      border-color: var(--success-color);
-    }
-
-    .ticket-active .ticket-header {
-      background: var(--success-color);
-    }
-
-    .ticket-verified {
-      border-color: var(--success-color);
-      background-color: rgba(16, 185, 129, 0.05);
-    }
-
-    .ticket-verified .ticket-header {
-      background: var(--success-color);
-    }
-
-    .ticket-invalid {
-      border-color: var(--danger-color);
-      background-color: rgba(239, 68, 68, 0.05);
-    }
-
-    .ticket-invalid .ticket-header {
-      background: var(--danger-color);
-    }
-
-    .scanner-container {
-      position: relative;
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto;
-    }
-
-    #scanner {
-      width: 100%;
-      height: 300px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px dashed #dee2e6;
-    }
-
-    .scanner-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.7);
+    
+    .location-control {
+      background: linear-gradient(135deg, var(--primary-color), #3b82f6);
       color: white;
-      border-radius: 8px;
-      z-index: 10;
+      border-radius: 12px;
     }
-
-    .scanner-frame {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 200px;
-      height: 200px;
-      border: 2px solid var(--primary-color);
-      border-radius: 8px;
-      z-index: 5;
+    
+    .notification-item {
+      border-left: 4px solid var(--primary-color);
+      transition: all 0.3s ease;
     }
-
-    .status-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      border-radius: 50px;
-      font-weight: 500;
+    
+    .notification-item:hover {
+      background-color: #f1f5f9;
     }
-
-    .status-active {
-      background-color: rgba(16, 185, 129, 0.1);
-      color: var(--success-color);
-    }
-
-    .status-inactive {
-      background-color: rgba(100, 116, 139, 0.1);
-      color: var(--secondary-color);
-    }
-
-    .status-error {
-      background-color: rgba(239, 68, 68, 0.1);
-      color: var(--danger-color);
-    }
-
-    .passenger-list {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    .passenger-item {
-      padding: 0.75rem;
-      border-bottom: 1px solid var(--card-border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .passenger-item:last-child {
-      border-bottom: none;
-    }
-
-    .badge {
-      font-weight: 500;
-      padding: 0.35em 0.65em;
-      border-radius: 50px;
-      font-size: 0.75em;
-    }
-
-    .badge-primary {
-      background-color: var(--primary-color);
-    }
-
-    .badge-success {
-      background-color: var(--success-color);
-    }
-
-    .badge-warning {
-      background-color: var(--warning-color);
-    }
-
-    .badge-danger {
-      background-color: var(--danger-color);
-    }
-
-    .toast-container {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      z-index: 1080;
-    }
-
-    .toast {
-      border-radius: var(--border-radius-sm);
-      box-shadow: var(--shadow-lg);
-      border: none;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 991.98px) {
-      #map {
-        height: 40vh;
-      }
-    }
-
-    @media (max-width: 767.98px) {
-      .map-controls {
-        flex-direction: row;
-        bottom: 15px;
-        top: auto;
-      }
-      
-      .navbar-brand {
-        font-size: 1.1rem;
-      }
-    }
-
-    @media (max-width: 575.98px) {
-      .container {
-        padding-left: 12px;
-        padding-right: 12px;
-      }
-      
-      .card-body {
-        padding: 1rem;
-      }
-    }
-
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
-
-    /* Utility classes */
-    .text-muted {
-      color: var(--text-muted) !important;
-    }
-
-    .text-primary {
-      color: var(--primary-color) !important;
-    }
-
-    .text-success {
-      color: var(--success-color) !important;
-    }
-
-    .text-warning {
-      color: var(--warning-color) !important;
-    }
-
-    .text-danger {
-      color: var(--danger-color) !important;
-    }
-
-    .fw-medium {
-      font-weight: 500;
-    }
-
-    .divider {
-      height: 1px;
-      background-color: var(--card-border);
-      margin: 1rem 0;
-    }
-
-    /* Profile Section */
-    .profile-section {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .profile-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background-color: var(--primary-color);
+    
+    .ticket-section {
+      background: linear-gradient(135deg, #10b981, #34d399);
       color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
+      border-radius: 12px;
+    }
+    
+    .qr-scanner {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .location-updating {
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    .nav-tabs .nav-link.active {
+      border-bottom: 3px solid var(--primary-color);
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
-  <!-- Flash Screen -->
-  <div id="flashScreen" class="flash-screen">
-    <div class="logo-container">
-      <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" fill="currentColor" class="bi bi-broadcast-pin" viewBox="0 0 16 16">
-        <path d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.314.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM8 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>
-        <path d="M12.06 13.94a.5.5 0 0 1 .707 0l1.414 1.414a.5.5 0 0 1-.707.707L12.06 14.647a.5.5 0 0 1 0-.707zM4.646 13.94a.5.5 0 0 0-.707 0L2.525 15.354a.5.5 0 0 0 .707.707L4.646 14.647a.5.5 0 0 0 0-.707zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zM8 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
-      </svg>
-      <h1>Navixera</h1>
-      <p>Conductor Dashboard</p>
-    </div>
-  </div>
-
-  <nav class="navbar navbar-expand-lg shadow-sm">
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg">
     <div class="container">
-      <a class="navbar-brand" href="#">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-broadcast-pin" viewBox="0 0 16 16" style="margin-right: 8px;">
-          <path d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.314.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM8 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>
-          <path d="M12.06 13.94a.5.5 0 0 1 .707 0l1.414 1.414a.5.5 0 0 1-.707.707L12.06 14.647a.5.5 0 0 1 0-.707zM4.646 13.94a.5.5 0 0 0-.707 0L2.525 15.354a.5.5 0 0 0 .707.707L4.646 14.647a.5.5 0 0 0 0-.707zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zM8 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
-        </svg>
-        Navixera — Conductor
+      <a class="navbar-brand d-flex align-items-center fw-bold text-primary" href="#">
+        <i class="bi bi-bus-front me-2 fs-4"></i>
+        Conductor Dashboard
       </a>
       <div class="d-flex align-items-center">
-        <span class="badge bg-primary me-2" id="connectionStatus">Connected</span>
-        <small class="text-muted d-none d-md-block" id="busInfo">Bus: Not Assigned</small>
-      </div>
-      <div id="authSection" class="ms-auto d-flex align-items-center gap-2">
-        <button id="loginBtn" class="btn btn-outline-primary">Login</button>
-        <div id="profileSection" class="profile-section d-none">
-          <div class="profile-avatar" id="profileAvatar">C</div>
-          <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <span id="userName">Conductor</span>
-            </button>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#" id="editProfileBtn">Edit Profile</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
-            </ul>
-          </div>
+        <span id="currentTime" class="text-muted me-3"></span>
+        <div class="dropdown">
+          <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-person-circle me-2"></i>
+            <span id="conductorName">Loading...</span>
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="logoutConductor()">
+              <i class="bi bi-box-arrow-right me-2"></i>Logout
+            </a></li>
+          </ul>
         </div>
       </div>
     </div>
   </nav>
 
-  <main class="container my-4">
-    <!-- Login Section -->
-    <div id="loginSection" class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title mb-4">Conductor Login</h5>
-        <div class="row">
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label for="conductorEmail" class="form-label">Email</label>
-              <input type="email" class="form-control" id="conductorEmail" placeholder="Enter your email">
+  <!-- Main Content -->
+  <div class="container my-4">
+    <!-- Bus Information -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card p-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h2 class="fw-bold text-primary mb-2" id="busTitle">Loading Bus Details...</h2>
+              <p class="text-muted mb-0" id="routeName">Fetching route information...</p>
             </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label for="conductorPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="conductorPassword" placeholder="Enter your password">
-            </div>
-          </div>
-        </div>
-        <button id="conductorLoginBtn" class="btn btn-primary w-100">Login</button>
-      </div>
-    </div>
-
-    <!-- Dashboard Section -->
-    <div id="dashboardSection" class="d-none">
-      <div class="row g-4">
-        <!-- Left Column -->
-        <div class="col-12 col-lg-8">
-          <!-- Bus Status Card -->
-          <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h5 class="card-title mb-0">Bus Status</h5>
-              <div>
-                <span class="status-indicator status-inactive" id="locationStatus">
-                  <i class="bi bi-geo-alt"></i> Location Tracking: Inactive
-                </span>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="mb-3">
-                    <label class="form-label fw-medium">Bus Information</label>
-                    <div class="p-3 bg-light rounded">
-                      <div class="d-flex justify-content-between mb-2">
-                        <span>Bus ID:</span>
-                        <strong id="currentBusId">-</strong>
-                      </div>
-                      <div class="d-flex justify-content-between mb-2">
-                        <span>Route:</span>
-                        <strong id="currentBusRoute">-</strong>
-                      </div>
-                      <div class="d-flex justify-content-between">
-                        <span>Status:</span>
-                        <strong id="currentBusStatus">-</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="mb-3">
-                    <label class="form-label fw-medium">Location Tracking</label>
-                    <div class="d-grid gap-2">
-                      <button id="startTrackingBtn" class="btn btn-success">
-                        <i class="bi bi-play-circle"></i> Start Tracking
-                      </button>
-                      <button id="stopTrackingBtn" class="btn btn-danger" disabled>
-                        <i class="bi bi-stop-circle"></i> Stop Tracking
-                      </button>
-                    </div>
-                    <div class="mt-3">
-                      <small class="text-muted">When active, your bus location will be shared with passengers in real-time.</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Map Card -->
-          <div class="card map-card mb-4">
-            <div class="card-header">
-              <h5 class="card-title mb-0">Bus Location</h5>
-            </div>
-            <div id="map"></div>
-            <div class="loader-overlay" id="loader">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column -->
-        <div class="col-12 col-lg-4">
-          <!-- Ticket Verification Card -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="card-title mb-0">Ticket Verification</h5>
-            </div>
-            <div class="card-body">
-              <div class="mb-3">
-                <label class="form-label fw-medium">Scan QR Code</label>
-                <div class="scanner-container">
-                  <div id="scanner">
-                    <div class="scanner-frame"></div>
-                    <div class="scanner-overlay d-none" id="scannerOverlay">
-                      <div class="text-center">
-                        <i class="bi bi-camera-video-off d-block fs-1 mb-2"></i>
-                        <span>Camera not accessible</span>
-                      </div>
-                    </div>
-                    <div class="text-center text-muted" id="scannerPlaceholder">
-                      <i class="bi bi-qr-code-scan d-block fs-1 mb-2"></i>
-                      <span>Click to start scanning</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="d-grid mt-3">
-                  <button id="startScannerBtn" class="btn btn-primary">
-                    <i class="bi bi-camera"></i> Start Scanner
-                  </button>
-                  <button id="stopScannerBtn" class="btn btn-secondary mt-2 d-none">
-                    <i class="bi bi-camera-video-off"></i> Stop Scanner
-                  </button>
-                </div>
-              </div>
-
-              <div class="divider"></div>
-
-              <div class="mb-3">
-                <label for="ticketIdInput" class="form-label fw-medium">Or Enter Ticket ID</label>
-                <div class="input-group">
-                  <input type="text" class="form-control" id="ticketIdInput" placeholder="Enter Ticket ID">
-                  <button class="btn btn-primary" id="verifyTicketBtn">
-                    <i class="bi bi-check-lg"></i> Verify
-                  </button>
-                </div>
-              </div>
-
-              <div class="mt-3" id="ticketResult">
-                <!-- Ticket verification result will appear here -->
-              </div>
-            </div>
-          </div>
-
-          <!-- Passengers Card -->
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h5 class="card-title mb-0">Current Passengers</h5>
-              <span class="badge bg-primary" id="passengerCount">0</span>
-            </div>
-            <div class="card-body">
-              <div class="passenger-list" id="passengerList">
-                <div class="text-center p-3 text-muted">
-                  <i class="bi bi-people d-block fs-1 mb-2"></i>
-                  <span>No passengers yet</span>
-                </div>
-              </div>
+            <div class="col-md-4 text-md-end">
+              <h4 class="mb-1" id="currentTimeDisplay">--:-- --</h4>
+              <p class="mb-0 text-muted">Status: <span id="currentStatus" class="badge bg-success">Loading...</span></p>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </main>
 
-  <!-- Edit Profile Modal -->
-  <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="profileName" class="form-label">Name</label>
-            <input type="text" class="form-control" id="profileName" placeholder="Enter name">
-          </div>
-          <div class="mb-3">
-            <label for="profileEmail" class="form-label">Email</label>
-            <input type="email" class="form-control" id="profileEmail" placeholder="Enter email" disabled>
-          </div>
-          <div class="mb-3">
-            <label for="profilePhone" class="form-label">Phone</label>
-            <input type="tel" class="form-control" id="profilePhone" placeholder="Enter phone number">
+    <!-- Location Control -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card location-control p-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h4 class="mb-2 text-white"><i class="bi bi-geo-alt-fill me-2"></i>Location Tracking</h4>
+              <p class="mb-0 text-white-50" id="locationStatusText">Click Start to begin automatic location tracking</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+              <button class="btn btn-light btn-lg me-2" id="startLocationBtn" onclick="startLocationTracking()">
+                <i class="bi bi-play-circle me-2"></i>Start Tracking
+              </button>
+              <button class="btn btn-outline-light btn-lg" id="stopLocationBtn" onclick="stopLocationTracking()" disabled>
+                <i class="bi bi-stop-circle me-2"></i>Stop Tracking
+              </button>
+            </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="saveProfileBtn">Save</button>
+      </div>
+    </div>
+
+    <!-- Tickets Section -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card ticket-section p-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h4 class="mb-2 text-white"><i class="bi bi-ticket-perforated me-2"></i>Ticket Verification</h4>
+              <p class="mb-0 text-white-50">Scan passenger QR codes to verify tickets</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+              <button class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#ticketModal">
+                <i class="bi bi-qr-code-scan me-2"></i>Check Ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Left Column - Status & Location -->
+      <div class="col-lg-8">
+        <!-- Status Controls -->
+        <div class="card p-4 mb-4">
+          <h5 class="mb-3"><i class="bi bi-speedometer2 me-2 text-primary"></i>Update Bus Status</h5>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <button class="btn btn-success w-100 status-btn" onclick="updateStatus('On Time')">
+                <i class="bi bi-check-circle-fill me-2"></i>On Time
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-warning w-100 status-btn" onclick="updateStatus('Delayed')">
+                <i class="bi bi-clock-history me-2"></i>Delayed
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-danger w-100 status-btn" onclick="updateStatus('Crowded')">
+                <i class="bi bi-people-fill me-2"></i>Crowded
+              </button>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-secondary w-100 status-btn" onclick="updateStatus('Out of Service')">
+                <i class="bi bi-x-circle me-2"></i>Out of Service
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Location Information -->
+        <div class="card p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5><i class="bi bi-geo me-2 text-primary"></i>Live Location Data</h5>
+            <span class="badge bg-success fs-6" id="locationStatusBadge">Ready</span>
+          </div>
+          
+          <div class="location-info p-3 rounded mb-3" style="background-color: #f0f9ff; border-left: 4px solid var(--primary-color);">
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="text-primary mb-2">GPS Coordinates</h6>
+                <p class="mb-1 fs-5" id="locationCoordinates">Waiting for GPS...</p>
+                <small class="text-muted" id="locationAddress">Location services not active</small>
+              </div>
+              <div class="col-md-6 text-md-end">
+                <h6 class="text-primary mb-2">Tracking Info</h6>
+                <p class="mb-1">Updates Sent: <span id="locationUpdateCount" class="fw-bold">0</span></p>
+                <button class="btn btn-sm btn-outline-primary mt-2" onclick="refreshLocation()">
+                  <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Map Display -->
+          <div class="map-display rounded mb-3" style="height: 200px; background: linear-gradient(135deg, #e2e8f0, #cbd5e1); display: flex; align-items: center; justify-content: center; color: #64748b;">
+            <div class="text-center">
+              <i class="bi bi-geo-alt-fill display-4 mb-3"></i>
+              <p class="mb-1">Live Location Tracking</p>
+              <small id="mapStatus">Location will appear here when tracking starts</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column - Notifications & Stats -->
+      <div class="col-lg-4">
+        <!-- Notifications -->
+        <div class="card p-4 mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5><i class="bi bi-bell me-2 text-primary"></i>Notifications</h5>
+            <span class="badge bg-primary fs-6" id="notificationCount">0</span>
+          </div>
+          <div id="notificationsList" style="max-height: 300px; overflow-y: auto;">
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-bell display-6 mb-3"></i>
+              <p>No notifications</p>
+              <small>Notifications from passengers will appear here</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Stats -->
+        <div class="card p-4">
+          <h5 class="mb-3"><i class="bi bi-graph-up me-2 text-primary"></i>Today's Stats</h5>
+          <div class="row text-center">
+            <div class="col-6 mb-3">
+              <div class="fs-2 fw-bold text-primary" id="ticketsChecked">0</div>
+              <small class="text-muted">Tickets Checked</small>
+            </div>
+            <div class="col-6 mb-3">
+              <div class="fs-2 fw-bold text-success" id="revenue">₹0</div>
+              <small class="text-muted">Revenue</small>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="progress mb-2">
+              <div class="progress-bar" role="progressbar" style="width: 75%" id="routeProgress"></div>
+            </div>
+            <small class="text-muted">Route Completion: <span id="routeCompletion">75%</span></small>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="toast-container"></div>
+  <!-- Ticket Verification Modal -->
+  <div class="modal fade" id="ticketModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-qr-code me-2"></i>Verify Ticket</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="qr-scanner mb-3">
+                <i class="bi bi-camera display-1 text-muted mb-3"></i>
+                <p class="mb-3">Point camera at passenger's QR code</p>
+                <button class="btn btn-primary" onclick="simulateQRScan()">
+                  <i class="bi bi-camera me-2"></i>Simulate Scan
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div id="ticketResult">
+                <div class="text-center py-4 text-muted">
+                  <i class="bi bi-qr-code display-4 mb-3"></i>
+                  <p>Scan a QR code to verify ticket</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <!-- Toast Container -->
+  <div class="toast-container position-fixed top-0 end-0 p-3"></div>
 
+  <!-- Audio for notifications -->
+  <audio id="notifSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    (function () {
-      'use strict';
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCn9YSO4-ksWl6JBqIcEEuLx2EJN8jMj4M",
+      authDomain: "svms-c0232.firebaseapp.com",
+      databaseURL: "https://svms-c0232-default-rtdb.firebaseio.com",
+      projectId: "svms-c0232",
+      storageBucket: "svms-c0232.appspot.com",
+      messagingSenderId: "359201898609",
+      appId: "1:359201898609:web:893ef076207abb06471bd0"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-      // Firebase Configuration
-      const firebaseConfig = {
-        apiKey: "AIzaSyCn9YSO4-ksWl6JBqIcEEuLx2EJN8jMj4M",
-        authDomain: "svms-c0232.firebaseapp.com",
-        databaseURL: "https://svms-c0232-default-rtdb.firebaseio.com",
-        projectId: "svms-c0232",
-        storageBucket: "svms-c0232.appspot.com",
-        messagingSenderId: "359201898609",
-        appId: "1:359201898609:web:893ef076207abb06471bd0"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database();
-      const auth = firebase.auth();
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-      // DOM Element Caching
-      const dom = {
-        flashScreen: document.getElementById('flashScreen'),
-        loader: document.getElementById('loader'),
-        loginSection: document.getElementById('loginSection'),
-        dashboardSection: document.getElementById('dashboardSection'),
-        loginBtn: document.getElementById('loginBtn'),
-        conductorLoginBtn: document.getElementById('conductorLoginBtn'),
-        conductorEmail: document.getElementById('conductorEmail'),
-        conductorPassword: document.getElementById('conductorPassword'),
-        profileSection: document.getElementById('profileSection'),
-        profileAvatar: document.getElementById('profileAvatar'),
-        userName: document.getElementById('userName'),
-        logoutBtn: document.getElementById('logoutBtn'),
-        editProfileBtn: document.getElementById('editProfileBtn'),
-        saveProfileBtn: document.getElementById('saveProfileBtn'),
-        profileName: document.getElementById('profileName'),
-        profileEmail: document.getElementById('profileEmail'),
-        profilePhone: document.getElementById('profilePhone'),
-        currentBusId: document.getElementById('currentBusId'),
-        currentBusRoute: document.getElementById('currentBusRoute'),
-        currentBusStatus: document.getElementById('currentBusStatus'),
-        busInfo: document.getElementById('busInfo'),
-        connectionStatus: document.getElementById('connectionStatus'),
-        locationStatus: document.getElementById('locationStatus'),
-        startTrackingBtn: document.getElementById('startTrackingBtn'),
-        stopTrackingBtn: document.getElementById('stopTrackingBtn'),
-        scanner: document.getElementById('scanner'),
-        scannerOverlay: document.getElementById('scannerOverlay'),
-        scannerPlaceholder: document.getElementById('scannerPlaceholder'),
-        startScannerBtn: document.getElementById('startScannerBtn'),
-        stopScannerBtn: document.getElementById('stopScannerBtn'),
-        ticketIdInput: document.getElementById('ticketIdInput'),
-        verifyTicketBtn: document.getElementById('verifyTicketBtn'),
-        ticketResult: document.getElementById('ticketResult'),
-        passengerList: document.getElementById('passengerList'),
-        passengerCount: document.getElementById('passengerCount'),
-        toastContainer: document.querySelector('.toast-container')
-      };
+    let busId = null;
+    let conductorData = null;
+    let lastNotifKeys = new Set();
+    let locationWatchId = null;
+    let isTracking = false;
+    let locationUpdateCount = 0;
+    let ticketsChecked = 0;
+    let totalRevenue = 0;
 
-      // State Variables
-      let map;
-      let busMarker;
-      let currentUser = null;
-      let userData = {};
-      let busData = {};
-      let assignedBusId = null;
-      let locationWatchId = null;
-      let isTracking = false;
-      let scannerActive = false;
-      let scannerVideo = null;
-      let scannerCanvas = null;
-      let scannerContext = null;
-      let scannerStream = null;
-      let passengers = [];
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', function() {
+      updateTime();
+      setInterval(updateTime, 1000);
+      
+      // Auto-login and fetch conductor data
+      initializeConductor();
+    });
 
-      // Helper Functions
-      const showLoader = () => dom.loader && dom.loader.classList && dom.loader.classList.remove('hidden');
-      const hideLoader = () => dom.loader && dom.loader.classList && dom.loader.classList.add('hidden');
+    // Update current time
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('currentTime').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
 
-      const showToast = (message, type = 'info', ttl = 3500) => {
-        try {
-          if (!dom.toastContainer) {
-            console.warn('No toast container found. Message:', message);
-            return;
-          }
-          const toastEl = document.createElement('div');
-          toastEl.className = `toast align-items-center text-bg-${type} border-0 show`;
-          toastEl.setAttribute('role', 'alert');
-          toastEl.setAttribute('aria-live', 'assertive');
-          toastEl.setAttribute('aria-atomic', 'true');
-          toastEl.style.animation = 'fadeIn 0.3s ease';
-
-          toastEl.innerHTML = `
-            <div class="d-flex">
-              <div class="toast-body">
-                <i class="bi ${type === 'success' ? 'bi-check-circle' : type === 'danger' ? 'bi-exclamation-triangle' : 'bi-info-circle'} me-2"></i>
-                ${message}
-              </div>
-              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-          `;
-
-          dom.toastContainer.appendChild(toastEl);
-
-          setTimeout(() => {
-            if (toastEl.parentNode) {
-              toastEl.style.opacity = '0';
-              toastEl.style.transition = 'opacity 0.3s ease';
-              setTimeout(() => {
-                if (toastEl.parentNode) {
-                  dom.toastContainer.removeChild(toastEl);
-                }
-              }, 300);
-            }
-          }, ttl);
-        } catch (error) {
-          console.error('Error showing toast:', error);
-        }
-      };
-
-      // Initialize Map
-      const initMap = () => {
-        try {
-          map = L.map('map').setView([40.7128, -74.0060], 13);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          }).addTo(map);
-
-          // Add bus marker
-          busMarker = L.marker([40.7128, -74.0060], {
-            icon: L.divIcon({
-              html: '<i class="bi bi-bus-front-fill text-white bg-primary p-2 rounded-circle"></i>',
-              iconSize: [40, 40],
-              className: 'bus-marker'
-            })
-          }).addTo(map);
-          busMarker.bindPopup('Bus Location').openPopup();
-
-          hideLoader();
-        } catch (error) {
-          console.error('Error initializing map:', error);
-          showToast('Failed to load map', 'danger');
-        }
-      };
-
-      // Start Location Tracking
-      const startLocationTracking = () => {
-        if (!navigator.geolocation) {
-          showToast('Geolocation is not supported by this browser', 'danger');
-          return;
-        }
-
-        showLoader();
-        isTracking = true;
-        dom.startTrackingBtn.disabled = true;
-        dom.stopTrackingBtn.disabled = false;
-        dom.locationStatus.className = 'status-indicator status-active';
-        dom.locationStatus.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Location Tracking: Active';
-
-        locationWatchId = navigator.geolocation.watchPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            busMarker.setLatLng([latitude, longitude]);
-            map.setView([latitude, longitude], 15);
-            busMarker.bindPopup(`Bus Location<br>Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}`).openPopup();
-
-            // Update bus location in Firebase
-            if (assignedBusId) {
-              db.ref(`buses/${assignedBusId}/location`).set({
-                lat: latitude,
-                lng: longitude,
-                timestamp: Date.now()
-              });
-            }
-
-            hideLoader();
-            showToast('Location tracking started', 'success');
-          },
-          (error) => {
-            console.error('Error getting location:', error);
-            showToast('Error getting location: ' + error.message, 'danger');
-            hideLoader();
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-          }
-        );
-      };
-
-      // Stop Location Tracking
-      const stopLocationTracking = () => {
-        if (locationWatchId) {
-          navigator.geolocation.clearWatch(locationWatchId);
-          locationWatchId = null;
-        }
-
-        isTracking = false;
-        dom.startTrackingBtn.disabled = false;
-        dom.stopTrackingBtn.disabled = true;
-        dom.locationStatus.className = 'status-indicator status-inactive';
-        dom.locationStatus.innerHTML = '<i class="bi bi-geo-alt"></i> Location Tracking: Inactive';
-
-        // Update bus status in Firebase
-        if (assignedBusId) {
-          db.ref(`buses/${assignedBusId}/location`).remove();
-        }
-
-        showToast('Location tracking stopped', 'info');
-      };
-
-      // Start QR Scanner
-      const startScanner = () => {
-        if (scannerActive) return;
-
-        try {
-          scannerVideo = document.createElement('video');
-          scannerCanvas = document.createElement('canvas');
-          scannerContext = scannerCanvas.getContext('2d');
-
-          dom.scannerPlaceholder.classList.add('d-none');
-          dom.scannerOverlay.classList.add('d-none');
-          dom.startScannerBtn.classList.add('d-none');
-          dom.stopScannerBtn.classList.remove('d-none');
-
-          navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-            .then((stream) => {
-              scannerStream = stream;
-              scannerVideo.srcObject = stream;
-              scannerVideo.setAttribute('playsinline', true);
-              scannerVideo.play();
-              dom.scanner.appendChild(scannerVideo);
-              requestAnimationFrame(scanQRCode);
-              scannerActive = true;
-            })
-            .catch((error) => {
-              console.error('Error accessing camera:', error);
-              dom.scannerOverlay.classList.remove('d-none');
-              showToast('Camera access denied', 'danger');
-            });
-        } catch (error) {
-          console.error('Error starting scanner:', error);
-          showToast('Failed to start scanner', 'danger');
-        }
-      };
-
-      // Stop QR Scanner
-      const stopScanner = () => {
-        if (!scannerActive) return;
-
-        scannerActive = false;
-        dom.scannerPlaceholder.classList.remove('d-none');
-        dom.startScannerBtn.classList.remove('d-none');
-        dom.stopScannerBtn.classList.add('d-none');
-
-        if (scannerStream) {
-          scannerStream.getTracks().forEach(track => track.stop());
-          scannerStream = null;
-        }
-
-        if (scannerVideo) {
-          scannerVideo.remove();
-          scannerVideo = null;
-        }
-      };
-
-      // Scan QR Code
-      const scanQRCode = () => {
-        if (!scannerActive || !scannerVideo || scannerVideo.readyState !== scannerVideo.HAVE_ENOUGH_DATA) {
-          requestAnimationFrame(scanQRCode);
-          return;
-        }
-
-        try {
-          scannerCanvas.width = scannerVideo.videoWidth;
-          scannerCanvas.height = scannerVideo.videoHeight;
-          scannerContext.drawImage(scannerVideo, 0, 0, scannerCanvas.width, scannerCanvas.height);
-
-          const imageData = scannerContext.getImageData(0, 0, scannerCanvas.width, scannerCanvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-          if (code) {
-            verifyTicket(code.data);
-            stopScanner();
-          } else {
-            requestAnimationFrame(scanQRCode);
-          }
-        } catch (error) {
-          console.error('Error scanning QR code:', error);
-          requestAnimationFrame(scanQRCode);
-        }
-      };
-
-      // Verify Ticket
-      const verifyTicket = (ticketId) => {
-        showLoader();
-        dom.ticketResult.innerHTML = '';
-
-        // Simulate API call
-        setTimeout(() => {
-          hideLoader();
-
-          // Mock verification result
-          const isTicketValid = Math.random() > 0.3;
-          const ticketType = ['Single', 'Daily', 'Weekly'][Math.floor(Math.random() * 3)];
-          const passengerName = ['John Doe', 'Jane Smith', 'Robert Johnson', 'Emily Davis'][Math.floor(Math.random() * 4)];
-
-          if (isTicketValid) {
-            const ticketHtml = `
-              <div class="ticket-card ticket-verified">
-                <div class="ticket-header">
-                  <span>Ticket Verified</span>
-                  <i class="bi bi-check-circle"></i>
-                </div>
-                <div class="ticket-body">
-                  <div class="d-flex justify-content-between mb-2">
-                    <span>Passenger:</span>
-                    <strong>${passengerName}</strong>
-                  </div>
-                  <div class="d-flex justify-content-between mb-2">
-                    <span>Ticket ID:</span>
-                    <strong>${ticketId}</strong>
-                  </div>
-                  <div class="d-flex justify-content-between mb-2">
-                    <span>Type:</span>
-                    <strong>${ticketType}</strong>
-                  </div>
-                  <div class="d-flex justify-content-between">
-                    <span>Status:</span>
-                    <strong class="text-success">Valid</strong>
-                  </div>
-                </div>
-              </div>
-            `;
-            dom.ticketResult.innerHTML = ticketHtml;
-
-            // Add passenger to list
-            addPassenger(passengerName, ticketId, ticketType);
-            showToast('Ticket verified successfully', 'success');
-          } else {
-            const ticketHtml = `
-              <div class="ticket-card ticket-invalid">
-                <div class="ticket-header">
-                  <span>Ticket Invalid</span>
-                  <i class="bi bi-x-circle"></i>
-                </div>
-                <div class="ticket-body">
-                  <div class="d-flex justify-content-between mb-2">
-                    <span>Ticket ID:</span>
-                    <strong>${ticketId}</strong>
-                  </div>
-                  <div class="d-flex justify-content-between">
-                    <span>Status:</span>
-                    <strong class="text-danger">Invalid or Expired</strong>
-                  </div>
-                </div>
-              </div>
-            `;
-            dom.ticketResult.innerHTML = ticketHtml;
-            showToast('Ticket is invalid or expired', 'danger');
-          }
-        }, 1500);
-      };
-
-      // Add Passenger
-      const addPassenger = (name, ticketId, ticketType) => {
-        const passenger = {
-          id: ticketId,
-          name: name,
-          ticketType: ticketType,
-          boardingTime: new Date().toLocaleTimeString()
+    // Initialize conductor session
+    function initializeConductor() {
+      // Get conductor data from URL parameters or localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      const conductorEmail = urlParams.get('email') || localStorage.getItem('conductorEmail');
+      
+      if (conductorEmail) {
+        busId = conductorEmail.split('@')[0].toUpperCase();
+        fetchConductorData();
+      } else {
+        // Demo mode - use default bus
+        busId = "C-306";
+        conductorData = {
+          name: "Rajesh Kumar",
+          route: "Central Station ↔ North Park"
         };
+        updateUIWithConductorData();
+        showToast('Demo mode activated', 'info');
+      }
+    }
 
-        passengers.push(passenger);
-        updatePassengerList();
-      };
-
-      // Update Passenger List
-      const updatePassengerList = () => {
-        dom.passengerCount.textContent = passengers.length;
-
-        if (passengers.length === 0) {
-          dom.passengerList.innerHTML = `
-            <div class="text-center p-3 text-muted">
-              <i class="bi bi-people d-block fs-1 mb-2"></i>
-              <span>No passengers yet</span>
-            </div>
-          `;
-          return;
-        }
-
-        let passengerHtml = '';
-        passengers.forEach(passenger => {
-          passengerHtml += `
-            <div class="passenger-item">
-              <div>
-                <div class="fw-medium">${passenger.name}</div>
-                <small class="text-muted">ID: ${passenger.id}</small>
-              </div>
-              <div class="text-end">
-                <div class="badge bg-primary">${passenger.ticketType}</div>
-                <div class="text-muted small">${passenger.boardingTime}</div>
-              </div>
-            </div>
-          `;
-        });
-
-        dom.passengerList.innerHTML = passengerHtml;
-      };
-
-      // Login Function
-      const login = (email, password) => {
-        if (!email || !password) {
-          showToast('Please enter both email and password', 'danger');
-          return;
-        }
-
-        showLoader();
-
-        // Simulate login process
-        setTimeout(() => {
-          hideLoader();
-
-          // Mock successful login
-          currentUser = {
-            uid: 'conductor123',
-            email: email,
-            displayName: 'John Conductor'
-          };
-
-          userData = {
-            name: 'John Conductor',
-            email: email,
-            phone: '+1 234 567 8900'
-          };
-
-          // Mock bus assignment
-          assignedBusId = 'bus001';
-          busData = {
-            id: assignedBusId,
-            route: 'Route 42 - Downtown Express',
-            status: 'Active'
-          };
-
-          // Update UI
-          dom.loginSection.classList.add('d-none');
-          dom.dashboardSection.classList.remove('d-none');
-          dom.profileSection.classList.remove('d-none');
-          dom.loginBtn.classList.add('d-none');
-          dom.userName.textContent = userData.name;
-          dom.profileAvatar.textContent = userData.name.charAt(0).toUpperCase();
-          dom.currentBusId.textContent = busData.id;
-          dom.currentBusRoute.textContent = busData.route;
-          dom.currentBusStatus.textContent = busData.status;
-          dom.busInfo.textContent = `Bus: ${busData.id} - ${busData.route}`;
-
-          showToast(`Welcome back, ${userData.name}!`, 'success');
-        }, 2000);
-      };
-
-      // Logout Function
-      const logout = () => {
-        if (isTracking) {
-          stopLocationTracking();
-        }
-
-        if (scannerActive) {
-          stopScanner();
-        }
-
-        currentUser = null;
-        userData = {};
-        busData = {};
-        assignedBusId = null;
-        passengers = [];
-
-        // Update UI
-        dom.dashboardSection.classList.add('d-none');
-        dom.loginSection.classList.remove('d-none');
-        dom.profileSection.classList.add('d-none');
-        dom.loginBtn.classList.remove('d-none');
-        dom.ticketResult.innerHTML = '';
-        updatePassengerList();
-
-        showToast('You have been logged out', 'info');
-      };
-
-      // Event Listeners
-      dom.conductorLoginBtn.addEventListener('click', () => {
-        const email = dom.conductorEmail.value;
-        const password = dom.conductorPassword.value;
-        login(email, password);
-      });
-
-      dom.loginBtn.addEventListener('click', () => {
-        dom.loginSection.classList.remove('d-none');
-      });
-
-      dom.logoutBtn.addEventListener('click', logout);
-
-      dom.editProfileBtn.addEventListener('click', () => {
-        dom.profileName.value = userData.name || '';
-        dom.profileEmail.value = userData.email || '';
-        dom.profilePhone.value = userData.phone || '';
-        new bootstrap.Modal(document.getElementById('editProfileModal')).show();
-      });
-
-      dom.saveProfileBtn.addEventListener('click', () => {
-        userData.name = dom.profileName.value;
-        userData.phone = dom.profilePhone.value;
-        dom.userName.textContent = userData.name;
-        dom.profileAvatar.textContent = userData.name.charAt(0).toUpperCase();
-        showToast('Profile updated successfully', 'success');
-        bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
-      });
-
-      dom.startTrackingBtn.addEventListener('click', startLocationTracking);
-      dom.stopTrackingBtn.addEventListener('click', stopLocationTracking);
-      dom.startScannerBtn.addEventListener('click', startScanner);
-      dom.stopScannerBtn.addEventListener('click', stopScanner);
-
-      dom.verifyTicketBtn.addEventListener('click', () => {
-        const ticketId = dom.ticketIdInput.value.trim();
-        if (!ticketId) {
-          showToast('Please enter a ticket ID', 'danger');
-          return;
-        }
-        verifyTicket(ticketId);
-        dom.ticketIdInput.value = '';
-      });
-
-      dom.ticketIdInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          dom.verifyTicketBtn.click();
-        }
-      });
-
-      // Initialize the application
-      const initApp = () => {
-        // Hide flash screen after 2 seconds
-        setTimeout(() => {
-          dom.flashScreen.style.display = 'none';
-          initMap();
-        }, 2000);
-
-        // Set up connection status monitoring
-        const connectedRef = db.ref('.info/connected');
-        connectedRef.on('value', (snap) => {
-          if (snap.val() === true) {
-            dom.connectionStatus.textContent = 'Connected';
-            dom.connectionStatus.className = 'badge bg-success';
+    // Fetch conductor data from Firebase
+    function fetchConductorData() {
+      db.ref('conductors/' + busId).once('value')
+        .then(snapshot => {
+          conductorData = snapshot.val();
+          if (conductorData) {
+            updateUIWithConductorData();
+            showToast('Conductor data loaded successfully', 'success');
           } else {
-            dom.connectionStatus.textContent = 'Disconnected';
-            dom.connectionStatus.className = 'badge bg-danger';
+            // Create demo conductor data
+            createConductorData();
           }
+        })
+        .catch(error => {
+          console.error('Error fetching conductor data:', error);
+          showToast('Error loading conductor data', 'danger');
         });
-      };
+    }
 
-      // Start the application
-      initApp();
-    })();
+    // Create conductor data if not exists
+    function createConductorData() {
+      conductorData = {
+        name: "Conductor " + busId,
+        email: busId.toLowerCase() + "@transit.com",
+        route: "Route " + busId,
+        busId: busId,
+        createdAt: Date.now()
+      };
+      
+      db.ref('conductors/' + busId).set(conductorData)
+        .then(() => {
+          updateUIWithConductorData();
+          showToast('New conductor profile created', 'success');
+        })
+        .catch(error => {
+          console.error('Error creating conductor data:', error);
+          showToast('Error creating conductor profile', 'danger');
+        });
+    }
+
+    // Update UI with conductor data
+    function updateUIWithConductorData() {
+      document.getElementById('conductorName').textContent = conductorData.name;
+      document.getElementById('busTitle').textContent = 'Bus: ' + busId;
+      document.getElementById('routeName').textContent = conductorData.route;
+      
+      // Load bus data from Firebase
+      loadBusData();
+      
+      // Load notifications
+      loadNotifications();
+      
+      // Initialize stats
+      updateStats();
+    }
+
+    // Load bus data from Firebase
+    function loadBusData() {
+      db.ref("public_transport/vehicles/" + busId).on('value', snapshot => {
+        const busData = snapshot.val();
+        if (busData) {
+          if (busData.status) {
+            document.getElementById('currentStatus').textContent = busData.status;
+            updateStatusBadge(busData.status);
+          }
+          if (busData.routeName) {
+            document.getElementById('routeName').textContent = busData.routeName;
+          }
+        } else {
+          // Create initial bus data
+          createBusData();
+        }
+      });
+    }
+
+    // Create initial bus data
+    function createBusData() {
+      const busData = {
+        vehicleType: 'Bus',
+        routeName: conductorData.route,
+        status: 'On Time',
+        capacity: 50,
+        companyName: 'City Transit',
+        lastUpdated: Date.now()
+      };
+      
+      db.ref("public_transport/vehicles/" + busId).set(busData)
+        .then(() => {
+          showToast('Bus data initialized', 'success');
+        })
+        .catch(error => {
+          console.error('Error creating bus data:', error);
+        });
+    }
+
+    // Update status badge color
+    function updateStatusBadge(status) {
+      const badge = document.getElementById('currentStatus');
+      badge.textContent = status;
+      
+      switch(status) {
+        case 'On Time':
+          badge.className = 'badge bg-success';
+          break;
+        case 'Delayed':
+          badge.className = 'badge bg-warning';
+          break;
+        case 'Crowded':
+          badge.className = 'badge bg-danger';
+          break;
+        case 'Out of Service':
+          badge.className = 'badge bg-secondary';
+          break;
+        default:
+          badge.className = 'badge bg-primary';
+      }
+    }
+
+    // Start automatic location tracking
+    function startLocationTracking() {
+      if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by your browser', 'danger');
+        return;
+      }
+      
+      if (isTracking) {
+        showToast('Location tracking is already active', 'info');
+        return;
+      }
+      
+      // Update UI
+      document.getElementById('startLocationBtn').disabled = true;
+      document.getElementById('stopLocationBtn').disabled = false;
+      document.getElementById('locationStatusText').textContent = 'Automatic location tracking active';
+      document.getElementById('locationStatusBadge').textContent = 'Tracking';
+      document.getElementById('locationStatusBadge').className = 'badge bg-warning fs-6';
+      document.getElementById('mapStatus').textContent = 'Tracking location in real-time...';
+      
+      showToast('Starting automatic location tracking...', 'info');
+      
+      // Start watching position
+      locationWatchId = navigator.geolocation.watchPosition(
+        position => {
+          const { latitude, longitude } = position.coords;
+          locationUpdateCount++;
+          
+          // Update UI
+          document.getElementById('locationCoordinates').textContent = 
+            `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+          document.getElementById('locationStatusBadge').textContent = 'Active';
+          document.getElementById('locationStatusBadge').className = 'badge bg-success fs-6';
+          document.getElementById('locationUpdateCount').textContent = locationUpdateCount;
+          
+          // Get approximate address
+          getAddressFromCoords(latitude, longitude);
+          
+          // Update bus location in Firebase
+          updateBusLocation(latitude, longitude);
+        },
+        error => {
+          console.error('Location error:', error);
+          handleLocationError(error);
+        },
+        { 
+          enableHighAccuracy: true,
+          maximumAge: 3000,
+          timeout: 10000
+        }
+      );
+      
+      isTracking = true;
+      showToast('Automatic location tracking started', 'success');
+    }
+
+    // Handle location errors
+    function handleLocationError(error) {
+      let errorMessage = 'Unknown location error';
+      
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage = 'Location access denied by user';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage = 'Location information unavailable';
+          break;
+        case error.TIMEOUT:
+          errorMessage = 'Location request timed out';
+          break;
+      }
+      
+      document.getElementById('locationStatusBadge').textContent = 'Error';
+      document.getElementById('locationStatusBadge').className = 'badge bg-danger fs-6';
+      document.getElementById('mapStatus').textContent = errorMessage;
+      
+      showToast(errorMessage, 'danger');
+    }
+
+    // Stop location tracking
+    function stopLocationTracking() {
+      if (!isTracking) {
+        showToast('Location tracking is not active', 'info');
+        return;
+      }
+      
+      if (locationWatchId) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        locationWatchId = null;
+      }
+      
+      // Update UI
+      document.getElementById('startLocationBtn').disabled = false;
+      document.getElementById('stopLocationBtn').disabled = true;
+      document.getElementById('locationStatusText').textContent = 'Location tracking stopped';
+      document.getElementById('locationStatusBadge').textContent = 'Stopped';
+      document.getElementById('locationStatusBadge').className = 'badge bg-secondary fs-6';
+      document.getElementById('mapStatus').textContent = 'Location tracking stopped';
+      
+      isTracking = false;
+      showToast('Location tracking stopped', 'info');
+    }
+
+    // Update bus location in Firebase
+    function updateBusLocation(latitude, longitude) {
+      if (!busId) return;
+      
+      const locationData = {
+        gps: `${latitude}, ${longitude}`,
+        lastLocationUpdate: Date.now(),
+        latitude: latitude,
+        longitude: longitude
+      };
+      
+      db.ref("public_transport/vehicles/" + busId).update(locationData)
+        .catch(error => {
+          console.error('Error updating location:', error);
+          showToast('Error updating location in database', 'danger');
+        });
+    }
+
+    // Simulate getting address from coordinates
+    function getAddressFromCoords(lat, lng) {
+      const addresses = [
+        "Mumbai Central, Maharashtra",
+        "Andheri East, Mumbai",
+        "Bandra Kurla Complex, Mumbai",
+        "Dadar West, Mumbai",
+        "Churchgate, Mumbai"
+      ];
+      
+      const addressIndex = Math.abs(Math.floor(lat * 1000)) % addresses.length;
+      const address = addresses[addressIndex];
+      
+      document.getElementById('locationAddress').textContent = address;
+    }
+
+    // Refresh location manually
+    function refreshLocation() {
+      if (!navigator.geolocation) {
+        showToast('Geolocation not available', 'danger');
+        return;
+      }
+      
+      document.getElementById('locationStatusBadge').textContent = 'Updating...';
+      document.getElementById('locationStatusBadge').className = 'badge bg-warning fs-6 location-updating';
+      
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const { latitude, longitude } = position.coords;
+          document.getElementById('locationCoordinates').textContent = 
+            `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+          document.getElementById('locationStatusBadge').textContent = 'Active';
+          document.getElementById('locationStatusBadge').className = 'badge bg-success fs-6';
+          
+          getAddressFromCoords(latitude, longitude);
+          updateBusLocation(latitude, longitude);
+          
+          showToast('Location refreshed manually', 'success');
+        },
+        error => {
+          console.error('Location error:', error);
+          document.getElementById('locationStatusBadge').textContent = 'Error';
+          document.getElementById('locationStatusBadge').className = 'badge bg-danger fs-6';
+          showToast('Failed to get location', 'danger');
+        }
+      );
+    }
+
+    // Update bus status
+    function updateStatus(status) {
+      if (!busId) return;
+      
+      db.ref("public_transport/vehicles/" + busId).update({
+        status: status,
+        lastUpdated: Date.now()
+      }).then(() => {
+        showToast(`Status updated to: ${status}`, 'success');
+        updateStatusBadge(status);
+      }).catch(error => {
+        console.error('Error updating status:', error);
+        showToast('Error updating status', 'danger');
+      });
+    }
+
+    // Load notifications
+    function loadNotifications() {
+      if (!busId) return;
+      
+      db.ref("public_transport/vehicles/" + busId + "/notifications")
+        .on("value", snapshot => {
+          const notifList = document.getElementById("notificationsList");
+          const notifCount = document.getElementById("notificationCount");
+          
+          notifList.innerHTML = '';
+          
+          let count = 0;
+          const notifications = [];
+          
+          snapshot.forEach(child => {
+            const key = child.key;
+            const notif = child.val();
+            notifications.push({ key, notif });
+            count++;
+          });
+          
+          // Sort by timestamp (newest first)
+          notifications.sort((a, b) => b.notif.timestamp - a.notif.timestamp);
+          
+          if (notifications.length === 0) {
+            notifList.innerHTML = `
+              <div class="text-center py-4 text-muted">
+                <i class="bi bi-bell display-6 mb-3"></i>
+                <p>No notifications</p>
+                <small>Notifications from passengers will appear here</small>
+              </div>
+            `;
+          } else {
+            notifications.forEach(({ key, notif }) => {
+              const notifElement = document.createElement('div');
+              notifElement.className = 'notification-item p-3 mb-2 rounded';
+              
+              let iconClass = 'bi-info-circle text-primary';
+              if (notif.type === 'lost_bag') {
+                iconClass = 'bi-bag-x text-danger';
+              } else if (notif.type === 'safety_alert') {
+                iconClass = 'bi-shield-exclamation text-warning';
+              }
+              
+              notifElement.innerHTML = `
+                <div class="d-flex">
+                  <div class="flex-shrink-0">
+                    <i class="bi ${iconClass} fs-5"></i>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-1">${notif.type ? notif.type.replace('_', ' ').toUpperCase() : 'Notification'}</h6>
+                    <p class="mb-1 small">${notif.description || 'New notification'}</p>
+                    <small class="text-muted">${formatTime(notif.timestamp)}</small>
+                  </div>
+                </div>
+              `;
+              
+              notifList.appendChild(notifElement);
+              
+              if (!lastNotifKeys.has(key)) {
+                document.getElementById("notifSound").play();
+                showToast('New notification received', 'info');
+              }
+              lastNotifKeys.add(key);
+            });
+          }
+          
+          notifCount.textContent = count;
+        });
+    }
+
+    // Simulate QR code scanning
+    function simulateQRScan() {
+      const ticketData = {
+        ticketId: 'TKT-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        passengerName: 'Passenger ' + Math.floor(Math.random() * 1000),
+        fromStop: 'Central Station',
+        toStop: 'North Park',
+        fare: 25,
+        validUntil: Date.now() + 2 * 60 * 60 * 1000, // 2 hours from now
+        busId: busId,
+        purchaseTime: Date.now() - 30 * 60 * 1000 // 30 minutes ago
+      };
+      
+      verifyTicket(ticketData);
+    }
+
+    // Verify ticket
+    function verifyTicket(ticketData) {
+      const resultDiv = document.getElementById('ticketResult');
+      const now = Date.now();
+      
+      if (ticketData.validUntil < now) {
+        resultDiv.innerHTML = `
+          <div class="alert alert-danger">
+            <h5><i class="bi bi-x-circle me-2"></i>Ticket Expired</h5>
+            <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
+            <p><strong>Passenger:</strong> ${ticketData.passengerName}</p>
+            <p><strong>Route:</strong> ${ticketData.fromStop} → ${ticketData.toStop}</p>
+            <p class="mb-0"><strong>Status:</strong> EXPIRED</p>
+          </div>
+        `;
+        showToast('Ticket expired!', 'danger');
+      } else if (ticketData.busId !== busId) {
+        resultDiv.innerHTML = `
+          <div class="alert alert-warning">
+            <h5><i class="bi bi-exclamation-triangle me-2"></i>Wrong Bus</h5>
+            <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
+            <p><strong>Passenger:</strong> ${ticketData.passengerName}</p>
+            <p><strong>Valid for Bus:</strong> ${ticketData.busId}</p>
+            <p class="mb-0"><strong>Status:</strong> INVALID FOR THIS BUS</p>
+          </div>
+        `;
+        showToast('Ticket not valid for this bus!', 'warning');
+      } else {
+        resultDiv.innerHTML = `
+          <div class="alert alert-success">
+            <h5><i class="bi bi-check-circle me-2"></i>Ticket Valid</h5>
+            <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
+            <p><strong>Passenger:</strong> ${ticketData.passengerName}</p>
+            <p><strong>Route:</strong> ${ticketData.fromStop} → ${ticketData.toStop}</p>
+            <p><strong>Fare:</strong> ₹${ticketData.fare}</p>
+            <p class="mb-0"><strong>Status:</strong> ACTIVE</p>
+          </div>
+        `;
+        showToast('Ticket verified successfully!', 'success');
+        
+        // Update stats
+        ticketsChecked++;
+        totalRevenue += ticketData.fare;
+        updateStats();
+      }
+    }
+
+    // Update statistics
+    function updateStats() {
+      document.getElementById('ticketsChecked').textContent = ticketsChecked;
+      document.getElementById('revenue').textContent = '₹' + totalRevenue;
+      
+      // Update route completion (random for demo)
+      const completion = Math.floor(Math.random() * 30) + 70; // 70-100%
+      document.getElementById('routeCompletion').textContent = completion + '%';
+      document.getElementById('routeProgress').style.width = completion + '%';
+    }
+
+    // Format timestamp to relative time
+    function formatTime(timestamp) {
+      if (!timestamp) return 'Just now';
+      
+      const now = Date.now();
+      const diff = now - timestamp;
+      
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+      return `${Math.floor(diff / 86400000)} days ago`;
+    }
+
+    // Logout conductor
+    function logoutConductor() {
+      if (locationWatchId) {
+        navigator.geolocation.clearWatch(locationWatchId);
+      }
+      
+      showToast('Logged out successfully', 'info');
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 1000);
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toast = document.createElement('div');
+      toast.className = `toast align-items-center text-bg-${type} border-0`;
+      toast.setAttribute('role', 'alert');
+      
+      toast.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body d-flex align-items-center">
+            <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : type === 'danger' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill'} me-2"></i>
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      const bsToast = new bootstrap.Toast(toast);
+      bsToast.show();
+      
+      toast.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toast);
+      });
+    }
   </script>
 </body>
-  </html>
+            </html>
