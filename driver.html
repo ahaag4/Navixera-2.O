@@ -112,6 +112,11 @@
       width: 100%;
       border-radius: 8px;
       overflow: hidden;
+      background-color: #f8f9fa;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .scanner-controls {
@@ -138,6 +143,18 @@
       font-size: 3rem;
       margin-bottom: 15px;
       display: block;
+    }
+    
+    .camera-permission {
+      background-color: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    #html5qr-code-full-region {
+      width: 100% !important;
     }
   </style>
 </head>
@@ -386,8 +403,19 @@
             
             <!-- QR Scanner Tab -->
             <div class="tab-pane fade qr-tab-content" id="scan" role="tabpanel">
+              <div class="camera-permission">
+                <h6><i class="bi bi-camera-video me-2"></i>Camera Access Required</h6>
+                <p class="mb-0 small">Please allow camera access when prompted to use the QR scanner.</p>
+              </div>
+              
               <div id="qr-scanner-container" class="qr-scanner-container">
-                <div id="qr-reader" class="mb-3"></div>
+                <div id="qr-reader" class="mb-3">
+                  <div class="qr-placeholder">
+                    <i class="bi bi-camera-video"></i>
+                    <p>Camera preview will appear here</p>
+                    <small class="text-muted">Click "Start Scanner" to begin</small>
+                  </div>
+                </div>
                 <div class="scanner-controls">
                   <button class="btn btn-primary" id="start-scanner" onclick="startQRScanner()">
                     <i class="bi bi-camera-video me-1"></i>Start Scanner
@@ -401,7 +429,7 @@
                 <div class="qr-placeholder">
                   <i class="bi bi-qr-code"></i>
                   <p>Scan a ticket QR code to verify</p>
-                  <small class="text-muted">QR code scanning will start automatically when you open this tab</small>
+                  <small class="text-muted">QR code scanning will start when you click "Start Scanner"</small>
                 </div>
               </div>
             </div>
@@ -452,9 +480,6 @@
       
       // Auto-login and fetch conductor data
       initializeConductor();
-      
-      // Initialize QR scanner
-      initQRScanner();
     });
 
     // Update current time
@@ -472,6 +497,10 @@
       if (conductorEmail) {
         busId = conductorEmail.split('@')[0].toUpperCase();
         fetchConductorData();
+      } else {
+        // For demo purposes, use a default bus ID
+        busId = "BUS001";
+        createConductorData();
       }
     }
 
@@ -490,6 +519,28 @@
         .catch(error => {
           console.error('Error fetching conductor data:', error);
           showToast('Error loading conductor data', 'danger');
+          // Create default data if fetch fails
+          createConductorData();
+        });
+    }
+
+    // Create conductor data if it doesn't exist
+    function createConductorData() {
+      conductorData = {
+        name: "Conductor " + busId,
+        route: "Route " + busId,
+        email: busId.toLowerCase() + "@example.com"
+      };
+      
+      db.ref('conductors/' + busId).set(conductorData)
+        .then(() => {
+          updateUIWithConductorData();
+          showToast('Conductor data created successfully', 'success');
+        })
+        .catch(error => {
+          console.error('Error creating conductor data:', error);
+          // Still update UI with default data
+          updateUIWithConductorData();
         });
     }
 
@@ -823,7 +874,7 @@
             resultDiv.innerHTML = `
               <div class="alert alert-danger">
                 <h5><i class="bi bi-x-circle me-2"></i>Ticket Not Found</h5>
-                <p><strong>Ticket ID:</strong> ${id}</p>
+                <p><strong>Ticket ID:</strong> ${ticketId}</p>
                 <p class="mb-0"><strong>Status:</strong> NOT FOUND</p>
               </div>
             `;
@@ -856,7 +907,7 @@
         resultDiv.innerHTML = `
           <div class="alert alert-danger">
             <h5><i class="bi bi-x-circle me-2"></i>Ticket Expired</h5>
-            <p><strong>Ticket ID:</strong> ${ticketData.id}</p>
+            <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
             <p><strong>Passenger:</strong> ${ticketData.passengerName || 'Unknown'}</p>
             <p><strong>Route:</strong> ${ticketData.fromStop} → ${ticketData.toStop}</p>
             <p class="mb-0"><strong>Status:</strong> EXPIRED</p>
@@ -867,7 +918,7 @@
         resultDiv.innerHTML = `
           <div class="alert alert-warning">
             <h5><i class="bi bi-exclamation-triangle me-2"></i>Wrong Bus</h5>
-            <p><strong>Ticket ID:</strong> ${ticketData.id}</p>
+            <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
             <p><strong>Passenger:</strong> ${ticketData.passengerName || 'Unknown'}</p>
             <p><strong>Valid for Bus:</strong> ${ticketData.busId}</p>
             <p class="mb-0"><strong>Status:</strong> INVALID FOR THIS BUS</p>
@@ -878,7 +929,7 @@
         resultDiv.innerHTML = `
           <div class="alert alert-success">
             <h5><i class="bi bi-check-circle me-2"></i>Ticket Valid</h5>
-            <p><strong>Ticket ID:</strong> ${ticketData.id}</p>
+            <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
             <p><strong>Passenger:</strong> ${ticketData.passengerName || 'Unknown'}</p>
             <p><strong>Route:</strong> ${ticketData.fromStop} → ${ticketData.toStop}</p>
             <p><strong>Fare:</strong> ₹${ticketData.fare}</p>
@@ -897,6 +948,7 @@
     function initQRScanner() {
       if (!html5QrCode) {
         html5QrCode = new Html5Qrcode("qr-reader");
+        console.log("QR Scanner initialized");
       }
     }
 
@@ -911,6 +963,14 @@
         return;
       }
       
+      // Clear the placeholder
+      document.getElementById('qr-reader').innerHTML = '';
+      document.getElementById('qr-result').innerHTML = `
+        <div class="alert alert-info">
+          <i class="bi bi-camera-video me-2"></i>Starting camera...
+        </div>
+      `;
+      
       Html5Qrcode.getCameras().then(devices => {
         if (devices && devices.length) {
           const cameraId = devices[0].id;
@@ -919,7 +979,8 @@
             cameraId,
             {
               fps: 10,
-              qrbox: { width: 250, height: 250 }
+              qrbox: { width: 250, height: 250 },
+              aspectRatio: 1.0
             },
             onQRScanSuccess,
             onQRScanFailure
@@ -928,21 +989,36 @@
             document.getElementById('start-scanner').disabled = true;
             document.getElementById('stop-scanner').disabled = false;
             document.getElementById('qr-result').innerHTML = `
-              <div class="alert alert-info">
+              <div class="alert alert-success">
                 <i class="bi bi-camera-video me-2"></i>Scanner active - point camera at QR code
               </div>
             `;
-            showToast('QR Scanner started', 'success');
+            showToast('QR Scanner started successfully', 'success');
           }).catch(err => {
             console.error('Error starting QR scanner:', err);
-            showToast('Failed to start QR scanner', 'danger');
+            document.getElementById('qr-result').innerHTML = `
+              <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>Failed to start camera: ${err.message || 'Unknown error'}
+              </div>
+            `;
+            showToast('Failed to start QR scanner: ' + (err.message || 'Unknown error'), 'danger');
           });
         } else {
+          document.getElementById('qr-result').innerHTML = `
+            <div class="alert alert-danger">
+              <i class="bi bi-exclamation-triangle me-2"></i>No camera found on this device
+            </div>
+          `;
           showToast('No camera found on this device', 'danger');
         }
       }).catch(err => {
         console.error('Error getting cameras:', err);
-        showToast('Error accessing camera', 'danger');
+        document.getElementById('qr-result').innerHTML = `
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle me-2"></i>Error accessing camera: ${err.message || 'Unknown error'}
+          </div>
+        `;
+        showToast('Error accessing camera: ' + (err.message || 'Unknown error'), 'danger');
       });
     }
 
@@ -953,6 +1029,13 @@
           isScannerActive = false;
           document.getElementById('start-scanner').disabled = false;
           document.getElementById('stop-scanner').disabled = true;
+          document.getElementById('qr-reader').innerHTML = `
+            <div class="qr-placeholder">
+              <i class="bi bi-camera-video"></i>
+              <p>Camera preview will appear here</p>
+              <small class="text-muted">Click "Start Scanner" to begin</small>
+            </div>
+          `;
           document.getElementById('qr-result').innerHTML = `
             <div class="qr-placeholder">
               <i class="bi bi-qr-code"></i>
@@ -969,9 +1052,6 @@
 
     // Handle QR scan success
     function onQRScanSuccess(decodedText, decodedResult) {
-      // Stop scanner after successful scan
-      stopQRScanner();
-      
       // Show scanning result
       document.getElementById('qr-result').innerHTML = `
         <div class="alert alert-success">
@@ -986,8 +1066,11 @@
         .then(snapshot => {
           const ticketData = snapshot.val();
           if (ticketData) {
-            document.getElementById('qr-result').innerHTML = '';
             verifyTicket(ticketData);
+            // Stop scanner after successful scan and verification
+            setTimeout(() => {
+              stopQRScanner();
+            }, 2000);
           } else {
             document.getElementById('qr-result').innerHTML = `
               <div class="alert alert-danger">
