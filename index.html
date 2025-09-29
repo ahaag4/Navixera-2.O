@@ -14,12 +14,6 @@
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
-  <!-- QR Code Library -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  
-  <!-- Razorpay Integration -->
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  
   <style>
     :root {
       --primary-color: #2563eb;
@@ -558,80 +552,6 @@
       to { transform: translateY(-10px); }
     }
 
-    /* Ticket Styles */
-    .ticket-card {
-      border: 2px solid var(--primary-color);
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 1rem;
-      background: white;
-      position: relative;
-    }
-
-    .ticket-header {
-      background: var(--primary-color);
-      color: white;
-      padding: 0.75rem 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .ticket-body {
-      padding: 1rem;
-    }
-
-    .ticket-qr {
-      text-align: center;
-      margin: 1rem 0;
-    }
-
-    .ticket-qr canvas {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 10px;
-      background: white;
-    }
-
-    .ticket-status {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-
-    .ticket-expired {
-      border-color: var(--danger-color);
-    }
-
-    .ticket-expired .ticket-header {
-      background: var(--danger-color);
-    }
-
-    .ticket-used {
-      border-color: var(--warning-color);
-    }
-
-    .ticket-used .ticket-header {
-      background: var(--warning-color);
-    }
-
-    .ticket-active {
-      border-color: var(--success-color);
-    }
-
-    .ticket-active .ticket-header {
-      background: var(--success-color);
-    }
-
-    /* My Tickets Section */
-    .tickets-section {
-      margin-top: 1.5rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--card-border);
-    }
-
     /* Responsive adjustments */
     @media (max-width: 1199.98px) {
       .sidebar, .bus-stop-panel {
@@ -830,6 +750,16 @@
       font-weight: bold;
       color: var(--primary-color);
     }
+
+    /* Ticket QR Section */
+    .qr-container {
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .qr-container img {
+      max-width: 200px;
+    }
   </style>
 </head>
 <body>
@@ -868,7 +798,6 @@
             <ul class="dropdown-menu">
               <li><a class="dropdown-item" href="#" id="editProfileBtn">Edit Profile</a></li>
               <li><a class="dropdown-item" href="#" id="historyBtn">History</a></li>
-              <li><a class="dropdown-item" href="#" id="myTicketsBtn">My Tickets</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="#" id="logoutBtn">Logout</a></li>
             </ul>
@@ -981,17 +910,6 @@
           <div class="search-group" id="pointsSection" style="display: none;">
             <h6 class="fw-medium mb-2">Your Points: <span id="userPoints">0</span></h6>
             <button id="dailyCheckInBtn" class="btn btn-success w-100">Daily Check-In</button>
-          </div>
-          
-          <!-- My Tickets Section -->
-          <div class="tickets-section" id="ticketsSection" style="display: none;">
-            <h6 class="fw-medium mb-2">My Tickets</h6>
-            <div class="result-list" id="myTicketsList">
-              <div class="text-center p-3 text-muted">
-                <i class="bi bi-ticket-perforated d-block fs-1 mb-2"></i>
-                <span>Your tickets will appear here</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1120,81 +1038,25 @@
           </div>
           
           <div class="payment-methods mb-3">
-            <div class="payment-method active" data-method="razorpay">
-              <i class="bi bi-credit-card"></i> Razorpay
-            </div>
-            <div class="payment-method" data-method="upi">
+            <div class="payment-method active" data-method="upi">
               <i class="bi bi-phone"></i> UPI
             </div>
           </div>
           
-          <div class="mb-3 upi-input" style="display: none;">
+          <div class="mb-3 upi-input">
             <label for="upiId" class="form-label">UPI ID</label>
             <input type="text" class="form-control" id="upiId" placeholder="Enter your UPI ID">
+          </div>
+
+          <!-- QR Code Section (shown after payment) -->
+          <div id="qrSection" class="qr-container d-none">
+            <h6>Your Ticket QR Code</h6>
+            <div id="ticketQR"></div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="button" class="btn btn-success" id="payTicketBtn">Pay Now</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Ticket Success Modal -->
-  <div class="modal fade" id="ticketSuccessModal" tabindex="-1" aria-labelledby="ticketSuccessModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="ticketSuccessModalLabel">Ticket Purchased Successfully!</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="ticket-card ticket-active">
-            <div class="ticket-header">
-              <div>
-                <h6 class="mb-0" id="successBusNumber">Bus: C-306</h6>
-                <small id="successRouteName">Route: Central Station to North Park</small>
-              </div>
-              <span class="ticket-status">ACTIVE</span>
-            </div>
-            <div class="ticket-body">
-              <div class="row">
-                <div class="col-md-8">
-                  <div class="mb-2">
-                    <strong>From:</strong> <span id="successFromStop">Central Station</span>
-                  </div>
-                  <div class="mb-2">
-                    <strong>To:</strong> <span id="successToStop">North Park</span>
-                  </div>
-                  <div class="mb-2">
-                    <strong>Passengers:</strong> <span id="successPassengers">1</span>
-                  </div>
-                  <div class="mb-2">
-                    <strong>Fare:</strong> ₹<span id="successFare">25</span>
-                  </div>
-                  <div class="mb-2">
-                    <strong>Ticket ID:</strong> <span id="successTicketId">TKT-123456</span>
-                  </div>
-                  <div class="mb-2">
-                    <strong>Valid Until:</strong> <span id="successValidUntil">Today, 11:59 PM</span>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="ticket-qr" id="ticketQrCode"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="alert alert-info mt-3">
-            <i class="bi bi-info-circle"></i> Show this QR code to the conductor when boarding. Ticket will expire automatically after your journey.
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" id="downloadTicketBtn">
-            <i class="bi bi-download"></i> Download Ticket
-          </button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
@@ -1268,6 +1130,9 @@
                 <button class="nav-link active" id="tickets-tab" data-bs-toggle="tab" data-bs-target="#tickets" type="button" role="tab" aria-controls="tickets" aria-selected="true">Tickets</button>
               </li>
               <li class="nav-item" role="presentation">
+                <button class="nav-link" id="active-tickets-tab" data-bs-toggle="tab" data-bs-target="#active-tickets" type="button" role="tab" aria-controls="active-tickets" aria-selected="false">Active Tickets</button>
+              </li>
+              <li class="nav-item" role="presentation">
                 <button class="nav-link" id="points-tab" data-bs-toggle="tab" data-bs-target="#points" type="button" role="tab" aria-controls="points" aria-selected="false">Points</button>
               </li>
               <li class="nav-item" role="presentation">
@@ -1278,6 +1143,9 @@
               <div class="tab-pane fade show active" id="tickets" role="tabpanel" aria-labelledby="tickets-tab">
                 <div id="ticketHistoryList"></div>
               </div>
+              <div class="tab-pane fade" id="active-tickets" role="tabpanel" aria-labelledby="active-tickets-tab">
+                <div id="activeTicketList"></div>
+              </div>
               <div class="tab-pane fade" id="points" role="tabpanel" aria-labelledby="points-tab">
                 <div id="pointsHistoryList"></div>
               </div>
@@ -1285,23 +1153,6 @@
                 <div id="alertHistoryList"></div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- My Tickets Modal -->
-  <div class="modal fade" id="myTicketsModal" tabindex="-1" aria-labelledby="myTicketsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="myTicketsModalLabel">My Tickets</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div id="myTicketsContent">
-            <!-- Tickets will be populated here -->
           </div>
         </div>
       </div>
@@ -1365,6 +1216,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet-rotatedmarker@0.2.0/leaflet.rotatedMarker.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <script>
     (function () {
@@ -1420,7 +1273,6 @@
         logoutBtn: document.getElementById('logoutBtn'),
         editProfileBtn: document.getElementById('editProfileBtn'),
         historyBtn: document.getElementById('historyBtn'),
-        myTicketsBtn: document.getElementById('myTicketsBtn'),
         buyTicketBtn: document.getElementById('buyTicketBtn'),
         ticketBusSelect: document.getElementById('ticketBusSelect'),
         payTicketBtn: document.getElementById('payTicketBtn'),
@@ -1452,11 +1304,9 @@
         ticketSummaryContent: document.getElementById('ticketSummaryContent'),
         upiId: document.getElementById('upiId'),
         confirmSafetyAlertBtn: document.getElementById('confirmSafetyAlertBtn'),
-        ticketsSection: document.getElementById('ticketsSection'),
-        myTicketsList: document.getElementById('myTicketsList'),
-        myTicketsContent: document.getElementById('myTicketsContent'),
-        downloadTicketBtn: document.getElementById('downloadTicketBtn'),
-        ticketQrCode: document.getElementById('ticketQrCode')
+        qrSection: document.getElementById('qrSection'),
+        ticketQR: document.getElementById('ticketQR'),
+        activeTicketList: document.getElementById('activeTicketList')
       };
 
       // State & Map Variables
@@ -1472,12 +1322,11 @@
       let busAlerts = {};
       let alertCheckInterval = null;
       const alertSound = new Audio('https://freesound.org/data/previews/66/66157_634166-lq.mp3');
-      const notificationSound = new Audio('https://freesound.org/data/previews/405/405877_5121236-lq.mp3');
+      const notificationSound = new Audio('https://freesound.org/data/previews/316/316914_3643870-lq.mp3'); // Added notification sound
       let currentUser = null;
       let userData = {};
       let currentChatBus = null;
       let currentSelectedBus = null;
-      let currentTicketData = null;
       let languages = {
         en: {
           title: 'Live Public Transit Dashboard — Navixera',
@@ -1638,7 +1487,7 @@
           const toast = new bootstrap.Toast(toastEl, { delay: ttl });
           toast.show();
           toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-          notificationSound.play().catch(e => console.log('Audio play error', e));
+          alertSound.play().catch(e => console.log('Audio play error', e));
         } catch (e) {
           console.error('showToast error', e);
         }
@@ -1673,56 +1522,6 @@
                   Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
-      };
-
-      // Generate unique ticket ID
-      const generateTicketId = () => {
-        return 'TKT-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-      };
-
-      // Generate QR Code
-      const generateQRCode = (text, elementId) => {
-        const element = document.getElementById(elementId);
-        if (element) {
-          element.innerHTML = '';
-          QRCode.toCanvas(element, text, function (error) {
-            if (error) console.error(error);
-          });
-        }
-      };
-
-      // Razorpay Payment Integration
-      const initiateRazorpayPayment = (amount, ticketData, onSuccess, onError) => {
-        const options = {
-          key: "rzp_test_1DP5mmOlF5G5ag", // Replace with your Razorpay key
-          amount: amount * 100, // Amount in paise
-          currency: "INR",
-          name: "Navixera Transit",
-          description: "Bus Ticket Purchase",
-          image: "https://example.com/your_logo.jpg",
-          handler: function (response) {
-            // Payment successful
-            onSuccess(response, ticketData);
-          },
-          prefill: {
-            name: currentUser.displayName || userData.name || "Customer",
-            email: currentUser.email || "customer@example.com",
-            contact: userData.phone || "9999999999"
-          },
-          notes: {
-            address: "Bus Ticket Purchase"
-          },
-          theme: {
-            color: "#2563eb"
-          }
-        };
-        
-        const rzp = new Razorpay(options);
-        rzp.open();
-        
-        rzp.on('payment.failed', function (response) {
-          onError(response.error);
-        });
       };
 
       // Backend ETA Caller (optional; will fall back if functions not available)
@@ -2095,17 +1894,14 @@
           dom.loginBtn.style.display = 'none';
           dom.profileSection.classList.remove('d-none');
           dom.pointsSection.style.display = 'block';
-          dom.ticketsSection.style.display = 'block';
           loadUserData(user.uid);
           updateTicketBusSelect();
           updateChatBusSelect();
           dom.pointsRedeemSection.style.display = 'block';
-          loadUserTickets();
         } else {
           dom.loginBtn.style.display = 'block';
           dom.profileSection.classList.add('d-none');
           dom.pointsSection.style.display = 'none';
-          dom.ticketsSection.style.display = 'none';
           userData = {};
           dom.userPoints.textContent = '0';
           dom.pointsRedeemSection.style.display = 'none';
@@ -2124,7 +1920,7 @@
             name: '', 
             email: '',
             phone: '',
-            emergencyContacts: [],
+            emergencyContacts: [] ,
             tickets: []
           };
           dom.userPoints.textContent = userData.points || 0;
@@ -2136,6 +1932,9 @@
           dom.profileEmail.value = userData.email || currentUser.email || '';
           dom.profilePhone.value = userData.phone || '';
           dom.emergencyContacts.value = (userData.emergencyContacts || []).join(', ');
+
+          // Check for expired tickets
+          checkExpiredTickets();
         });
       };
 
@@ -2184,6 +1983,34 @@
           `).join('') : 
           '<div class="text-center p-3 text-muted">No ticket history yet.</div>';
         
+        // Load active tickets
+        const activeTickets = (userData.tickets || []).filter(t => t.status === 'active' && t.expiry > Date.now());
+        dom.activeTicketList.innerHTML = activeTickets.length > 0 ? 
+          activeTickets.map(t => `
+            <div class="history-item">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <strong>Ticket ID: ${t.id}</strong><br>
+                  Bus: ${t.busId} | From: ${t.fromStop} to ${t.toStop}<br>
+                  <small class="text-muted">Expires: ${new Date(t.expiry).toLocaleString()}</small>
+                </div>
+                <div class="qr-container">
+                  <div id="qr-${t.id}"></div>
+                </div>
+              </div>
+            </div>
+          `).join('') : 
+          '<div class="text-center p-3 text-muted">No active tickets.</div>';
+
+        // Render QR codes for active tickets
+        activeTickets.forEach(t => {
+          new QRCode(document.getElementById(`qr-${t.id}`), {
+            text: JSON.stringify(t),
+            width: 128,
+            height: 128
+          });
+        });
+
         // Load points history
         const pointsHistory = (userData.history || []).filter(h => h.type === 'Points');
         dom.pointsHistoryList.innerHTML = pointsHistory.length > 0 ? 
@@ -2246,196 +2073,17 @@
         }
       };
 
-      // Ticket Management Functions
-      const loadUserTickets = () => {
-        if (!currentUser) return;
-        
+      const checkExpiredTickets = () => {
         const tickets = userData.tickets || [];
-        dom.myTicketsList.innerHTML = '';
-        
-        if (tickets.length === 0) {
-          dom.myTicketsList.innerHTML = '<div class="text-center p-3 text-muted"><i class="bi bi-ticket-perforated"></i> No tickets yet</div>';
-          return;
-        }
-        
-        // Sort tickets by creation date (newest first)
-        const sortedTickets = tickets.sort((a, b) => b.createdAt - a.createdAt);
-        
-        // Show only the 3 most recent tickets in the sidebar
-        const recentTickets = sortedTickets.slice(0, 3);
-        
-        recentTickets.forEach(ticket => {
-          const ticketElement = createTicketElement(ticket, true);
-          dom.myTicketsList.appendChild(ticketElement);
-        });
-        
-        if (tickets.length > 3) {
-          const viewAllButton = document.createElement('button');
-          viewAllButton.className = 'btn btn-outline-primary w-100 mt-2';
-          viewAllButton.textContent = 'View All Tickets';
-          viewAllButton.addEventListener('click', showMyTicketsModal);
-          dom.myTicketsList.appendChild(viewAllButton);
-        }
-      };
-
-      const createTicketElement = (ticket, compact = false) => {
-        const ticketElement = document.createElement('div');
-        let statusClass = 'ticket-active';
-        let statusText = 'ACTIVE';
-        
-        if (ticket.status === 'used') {
-          statusClass = 'ticket-used';
-          statusText = 'USED';
-        } else if (ticket.status === 'expired') {
-          statusClass = 'ticket-expired';
-          statusText = 'EXPIRED';
-        }
-        
-        if (compact) {
-          ticketElement.className = 'vehicle-item';
-          ticketElement.innerHTML = `
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <strong>${ticket.busId}</strong><br>
-                <small class="text-muted">${ticket.fromStop} → ${ticket.toStop}</small><br>
-                <small class="text-success">₹${ticket.fare}</small>
-              </div>
-              <span class="badge ${statusClass === 'ticket-active' ? 'bg-success' : statusClass === 'ticket-used' ? 'bg-warning' : 'bg-danger'}">${statusText}</span>
-            </div>
-          `;
-          ticketElement.addEventListener('click', () => showTicketDetails(ticket));
-        } else {
-          ticketElement.className = `ticket-card ${statusClass} mb-3`;
-          ticketElement.innerHTML = `
-            <div class="ticket-header">
-              <div>
-                <h6 class="mb-0">Bus: ${ticket.busId}</h6>
-                <small>Route: ${ticket.routeName}</small>
-              </div>
-              <span class="ticket-status">${statusText}</span>
-            </div>
-            <div class="ticket-body">
-              <div class="row">
-                <div class="${compact ? 'col-12' : 'col-md-8'}">
-                  <div class="mb-2">
-                    <strong>From:</strong> ${ticket.fromStop}
-                  </div>
-                  <div class="mb-2">
-                    <strong>To:</strong> ${ticket.toStop}
-                  </div>
-                  <div class="mb-2">
-                    <strong>Passengers:</strong> ${ticket.passengers}
-                  </div>
-                  <div class="mb-2">
-                    <strong>Fare:</strong> ₹${ticket.fare}
-                  </div>
-                  <div class="mb-2">
-                    <strong>Ticket ID:</strong> ${ticket.id}
-                  </div>
-                  <div class="mb-2">
-                    <strong>Valid Until:</strong> ${new Date(ticket.validUntil).toLocaleString()}
-                  </div>
-                  <div class="mb-2">
-                    <strong>Purchased:</strong> ${new Date(ticket.createdAt).toLocaleString()}
-                  </div>
-                </div>
-                ${!compact ? `
-                <div class="col-md-4">
-                  <div class="ticket-qr" id="qr-${ticket.id}"></div>
-                </div>
-                ` : ''}
-              </div>
-            </div>
-          `;
-          
-          if (!compact) {
-            // Generate QR code for the ticket
-            setTimeout(() => {
-              generateQRCode(JSON.stringify({
-                ticketId: ticket.id,
-                busId: ticket.busId,
-                fromStop: ticket.fromStop,
-                toStop: ticket.toStop,
-                passengers: ticket.passengers,
-                fare: ticket.fare,
-                validUntil: ticket.validUntil
-              }), `qr-${ticket.id}`);
-            }, 100);
+        const updatedTickets = tickets.map(t => {
+          if (t.expiry <= Date.now() && t.status === 'active') {
+            t.status = 'expired';
           }
+          return t;
+        });
+        if (JSON.stringify(updatedTickets) !== JSON.stringify(tickets)) {
+          db.ref(`users/${currentUser.uid}`).update({ tickets: updatedTickets });
         }
-        
-        return ticketElement;
-      };
-
-      const showMyTicketsModal = () => {
-        const tickets = userData.tickets || [];
-        dom.myTicketsContent.innerHTML = '';
-        
-        if (tickets.length === 0) {
-          dom.myTicketsContent.innerHTML = '<div class="text-center p-3 text-muted"><i class="bi bi-ticket-perforated"></i> No tickets yet</div>';
-        } else {
-          const sortedTickets = tickets.sort((a, b) => b.createdAt - a.createdAt);
-          sortedTickets.forEach(ticket => {
-            const ticketElement = createTicketElement(ticket, false);
-            dom.myTicketsContent.appendChild(ticketElement);
-          });
-        }
-        
-        new bootstrap.Modal(document.getElementById('myTicketsModal')).show();
-      };
-
-      const showTicketDetails = (ticket) => {
-        // For now, just show a toast with ticket details
-        showToast(`Ticket ${ticket.id}: ${ticket.fromStop} → ${ticket.toStop} (₹${ticket.fare})`, 'info');
-      };
-
-      const saveTicket = (ticketData) => {
-        if (!currentUser) return;
-        
-        const tickets = userData.tickets || [];
-        tickets.push(ticketData);
-        
-        db.ref(`users/${currentUser.uid}/tickets`).set(tickets)
-          .then(() => {
-            // Update local user data
-            userData.tickets = tickets;
-            loadUserTickets();
-          })
-          .catch(error => {
-            console.error('Error saving ticket:', error);
-          });
-      };
-
-      const showTicketSuccess = (ticketData) => {
-        // Update modal with ticket details
-        document.getElementById('successBusNumber').textContent = `Bus: ${ticketData.busId}`;
-        document.getElementById('successRouteName').textContent = `Route: ${ticketData.routeName}`;
-        document.getElementById('successFromStop').textContent = ticketData.fromStop;
-        document.getElementById('successToStop').textContent = ticketData.toStop;
-        document.getElementById('successPassengers').textContent = ticketData.passengers;
-        document.getElementById('successFare').textContent = ticketData.fare;
-        document.getElementById('successTicketId').textContent = ticketData.id;
-        document.getElementById('successValidUntil').textContent = new Date(ticketData.validUntil).toLocaleString();
-        
-        // Generate QR code
-        generateQRCode(JSON.stringify({
-          ticketId: ticketData.id,
-          busId: ticketData.busId,
-          fromStop: ticketData.fromStop,
-          toStop: ticketData.toStop,
-          passengers: ticketData.passengers,
-          fare: ticketData.fare,
-          validUntil: ticketData.validUntil
-        }), 'ticketQrCode');
-        
-        // Show success modal
-        const buyTicketModal = bootstrap.Modal.getInstance(document.getElementById('buyTicketModal'));
-        if (buyTicketModal) buyTicketModal.hide();
-        
-        new bootstrap.Modal(document.getElementById('ticketSuccessModal')).show();
-        
-        // Play success sound
-        notificationSound.play().catch(e => console.log('Audio play error', e));
       };
 
       // Bus Alert Functions
@@ -2686,7 +2334,17 @@
           <small class="text-muted">Distance: ${totalDistance.toFixed(1)} km</small>
         `;
 
-        return finalFare;
+        return { finalFare, totalDistance, baseFare, totalFare, discount };
+      };
+
+      const generateQRCode = (ticketData) => {
+        dom.ticketQR.innerHTML = '';
+        new QRCode(dom.ticketQR, {
+          text: JSON.stringify(ticketData),
+          width: 200,
+          height: 200
+        });
+        dom.qrSection.classList.remove('d-none');
       };
 
       const buyTicket = () => {
@@ -2699,10 +2357,15 @@
         const toIndex = parseInt(dom.ticketTo.value);
         const passengerCount = parseInt(dom.passengerCount.value) || 1;
         const pointsToUse = parseInt(dom.usePoints.value) || 0;
-        const finalFare = calculateTicketFare();
+        const upiId = dom.upiId.value;
+        const fareData = calculateTicketFare();
         
         if (!busId || isNaN(fromIndex) || isNaN(toIndex) || fromIndex >= toIndex) {
           showToast('Please select a bus and valid stops.', 'warning');
+          return;
+        }
+        if (!upiId) {
+          showToast('Please enter your UPI ID.', 'warning');
           return;
         }
         if (pointsToUse > (userData.points || 0)) {
@@ -2710,51 +2373,47 @@
           return;
         }
         
-        // Create ticket data
-        const stops = vehiclesData[busId].stops || [];
-        const fromStop = stops[fromIndex]?.name || `Stop ${fromIndex + 1}`;
-        const toStop = stops[toIndex]?.name || `Stop ${toIndex + 1}`;
-        
-        const ticketData = {
-          id: generateTicketId(),
-          busId: busId,
-          routeName: vehiclesData[busId].routeName || 'Unknown Route',
-          fromStop: fromStop,
-          toStop: toStop,
-          fromIndex: fromIndex,
-          toIndex: toIndex,
-          passengers: passengerCount,
-          fare: finalFare,
-          status: 'active',
-          createdAt: Date.now(),
-          validUntil: Date.now() + (24 * 60 * 60 * 1000), // Valid for 24 hours
-          pointsUsed: pointsToUse
-        };
-        
-        currentTicketData = ticketData;
-        
-        // Initiate Razorpay payment
-        initiateRazorpayPayment(
-          finalFare,
-          ticketData,
-          // Success callback
-          function (response, ticketData) {
-            // Payment successful - save ticket
-            saveTicket(ticketData);
-            
-            // Update user points
+        // Razorpay payment
+        const options = {
+          key: 'YOUR_RAZORPAY_KEY_ID', // Replace with your Razorpay key
+          amount: fareData.finalFare * 100, // in paise
+          currency: 'INR',
+          name: 'Navixera',
+          description: 'Bus Ticket Payment',
+          handler: function (response) {
+            // Payment successful
+            notificationSound.play().catch(e => console.log('Notification sound error', e));
+            showToast('Payment successful! Ticket generated.', 'success');
             const newPoints = (userData.points || 0) - pointsToUse + 5; // +5 for purchase
             const history = userData.history || [];
-            
+            const tickets = userData.tickets || [];
+            const stops = vehiclesData[busId].stops || [];
+            const fromStop = stops[fromIndex]?.name || `Stop ${fromIndex + 1}`;
+            const toStop = stops[toIndex]?.name || `Stop ${toIndex + 1}`;
+            const ticketId = Date.now().toString();
+            const expiry = Date.now() + (fareData.totalDistance * 3600000); // 1 hour per km (mock expiry)
+
+            const ticketData = { 
+              id: ticketId,
+              busId,
+              fromStop,
+              toStop,
+              passengers: passengerCount,
+              amount: fareData.finalFare,
+              status: 'active',
+              expiry,
+              timestamp: Date.now(),
+              qrData: { ticketId, userId: currentUser.uid, validated: false }
+            };
+
             history.push({ 
               type: 'Ticket Purchase', 
               details: `From ${fromStop} to ${toStop} on bus ${busId}`, 
-              amount: finalFare,
+              amount: fareData.finalFare,
               passengers: passengerCount,
               timestamp: Date.now() 
             });
             
-            // Add points history
             if (pointsToUse > 0) {
               history.push({
                 type: 'Points',
@@ -2764,27 +2423,49 @@
               });
             }
             
-            // Add points for purchase
             history.push({
               type: 'Points',
               details: 'Points earned from ticket purchase',
               points: 5,
               timestamp: Date.now()
             });
+
+            tickets.push(ticketData);
             
             db.ref(`users/${currentUser.uid}`).update({ 
               points: newPoints, 
-              history 
+              history,
+              tickets
             });
-            
-            // Show success modal
-            showTicketSuccess(ticketData);
+
+            // Generate QR code
+            generateQRCode(ticketData.qrData);
+
+            // Simulate conductor scan validation (for demo; in real, handle via separate app)
+            // For now, assume after 5 min, validate
+            setTimeout(() => {
+              ticketData.qrData.validated = true;
+              showToast('Ticket validated by conductor.', 'success');
+              notificationSound.play().catch(e => console.log('Notification sound error', e));
+            }, 300000); // 5 min
           },
-          // Error callback
-          function (error) {
-            showToast('Payment failed: ' + error.description, 'danger');
+          prefill: {
+            name: userData.name,
+            email: userData.email,
+            contact: userData.phone
+          },
+          notes: {
+            busId: busId,
+            from: fromIndex,
+            to: toIndex
+          },
+          theme: {
+            color: '#2563eb'
           }
-        );
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
       };
 
       // Safety Button
@@ -3135,7 +2816,6 @@
         if (dom.editProfileBtn) dom.editProfileBtn.addEventListener('click', showEditProfile);
         if (dom.saveProfileBtn) dom.saveProfileBtn.addEventListener('click', saveProfile);
         if (dom.historyBtn) dom.historyBtn.addEventListener('click', showHistory);
-        if (dom.myTicketsBtn) dom.myTicketsBtn.addEventListener('click', showMyTicketsModal);
 
         // Alerts and lost bag
         if (dom.setAlertBtn) dom.setAlertBtn.addEventListener('click', setBusAlert);
@@ -3150,28 +2830,6 @@
         if (dom.ticketFrom) dom.ticketFrom.addEventListener('change', calculateTicketFare);
         if (dom.ticketTo) dom.ticketTo.addEventListener('change', calculateTicketFare);
         if (dom.passengerCount) dom.passengerCount.addEventListener('change', calculateTicketFare);
-
-        // Payment method selection
-        document.querySelectorAll('.payment-method').forEach(method => {
-          method.addEventListener('click', function() {
-            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Show/hide payment input fields
-            const methodType = this.getAttribute('data-method');
-            if (methodType === 'upi') {
-              document.querySelector('.upi-input').style.display = 'block';
-            } else {
-              document.querySelector('.upi-input').style.display = 'none';
-            }
-          });
-        });
-
-        // Download ticket
-        if (dom.downloadTicketBtn) dom.downloadTicketBtn.addEventListener('click', function() {
-          // In a real implementation, this would generate a downloadable ticket
-          showToast('Ticket download feature would be implemented here', 'info');
-        });
 
         // Safety
         if (dom.safetyBtn) dom.safetyBtn.addEventListener('click', sendSafetyAlert);
