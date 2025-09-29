@@ -71,6 +71,18 @@
       background-color: #f1f5f9;
     }
     
+    .ticket-item {
+      border-left: 4px solid var(--success-color);
+    }
+    
+    .ticket-valid {
+      border-left-color: var(--success-color);
+    }
+    
+    .ticket-invalid {
+      border-left-color: var(--danger-color);
+    }
+    
     .location-updating {
       animation: pulse 1.5s infinite;
     }
@@ -79,6 +91,11 @@
       0% { opacity: 1; }
       50% { opacity: 0.7; }
       100% { opacity: 1; }
+    }
+    
+    .bus-info-card {
+      background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+      color: white;
     }
   </style>
 </head>
@@ -95,7 +112,7 @@
         <div class="dropdown">
           <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
             <i class="bi bi-person-circle me-2"></i>
-            <span id="conductorName">Conductor</span>
+            <span id="conductorName">Loading...</span>
           </button>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="#" onclick="logoutConductor()">
@@ -112,15 +129,26 @@
     <!-- Bus Information -->
     <div class="row mb-4">
       <div class="col-12">
-        <div class="card p-4">
+        <div class="card bus-info-card p-4">
           <div class="row align-items-center">
             <div class="col-md-8">
-              <h2 class="fw-bold text-primary mb-2" id="busTitle">Bus: C-306</h2>
-              <p class="text-muted mb-0">Central Station ↔ North Park Route</p>
+              <h2 class="fw-bold mb-1" id="busTitle">Loading Bus Details...</h2>
+              <p class="mb-2 opacity-75" id="routeName">Fetching route information...</p>
+              <div class="d-flex align-items-center">
+                <div class="me-3">
+                  <span class="badge bg-light text-dark" id="currentStatus">Unknown</span>
+                </div>
+                <div class="me-3">
+                  <small><i class="bi bi-people-fill me-1"></i> <span id="passengerCount">0</span>/<span id="busCapacity">0</span> capacity</small>
+                </div>
+                <div>
+                  <small><i class="bi bi-building me-1"></i> <span id="companyName">Loading...</span></small>
+                </div>
+              </div>
             </div>
             <div class="col-md-4 text-md-end">
               <h4 class="mb-1" id="currentTimeDisplay">--:-- --</h4>
-              <p class="mb-0 text-muted">Last Update: <span id="lastUpdateTime">--:--</span></p>
+              <p class="mb-0 opacity-75">Last Update: <span id="lastUpdateTime">--:--</span></p>
             </div>
           </div>
         </div>
@@ -151,7 +179,7 @@
 
     <div class="row">
       <!-- Left Column - Status & Location -->
-      <div class="col-lg-8">
+      <div class="col-lg-6">
         <!-- Status Controls -->
         <div class="card p-4 mb-4">
           <h5 class="mb-3"><i class="bi bi-speedometer2 me-2 text-primary"></i>Update Bus Status</h5>
@@ -214,15 +242,45 @@
         </div>
       </div>
 
-      <!-- Right Column - Notifications -->
-      <div class="col-lg-4">
-        <div class="card p-4 h-100">
+      <!-- Right Column - Notifications & Tickets -->
+      <div class="col-lg-6">
+        <!-- Ticket Checking Section -->
+        <div class="card p-4 mb-4">
+          <h5 class="mb-3"><i class="bi bi-ticket-perforated me-2 text-primary"></i>Ticket Verification</h5>
+          
+          <div class="mb-3">
+            <label for="ticketInput" class="form-label">Enter Ticket ID or Scan QR Code</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="ticketInput" placeholder="TKT-123456 or scan QR code">
+              <button class="btn btn-primary" onclick="verifyTicket()">
+                <i class="bi bi-check-circle me-1"></i>Verify
+              </button>
+            </div>
+          </div>
+
+          <div id="ticketResult" class="d-none">
+            <!-- Ticket result will be shown here -->
+          </div>
+
+          <div class="mt-3">
+            <h6>Recent Ticket Checks</h6>
+            <div id="recentTickets" style="max-height: 200px; overflow-y: auto;">
+              <div class="text-center py-3 text-muted">
+                <i class="bi bi-ticket-perforated display-6 mb-2"></i>
+                <p>No recent ticket checks</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="card p-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5><i class="bi bi-bell me-2 text-primary"></i>Notifications</h5>
             <span class="badge bg-primary fs-6" id="notificationCount">0</span>
           </div>
-          <div id="notificationsList" style="max-height: 500px; overflow-y: auto;">
-            <div class="text-center py-5 text-muted">
+          <div id="notificationsList" style="max-height: 300px; overflow-y: auto;">
+            <div class="text-center py-4 text-muted">
               <i class="bi bi-bell display-4 mb-3"></i>
               <p>No notifications</p>
               <small>Notifications from passengers will appear here</small>
@@ -256,18 +314,20 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
-    let busId = "C-306"; // Default bus ID
+    let busId = null;
+    let conductorData = null;
     let lastNotifKeys = new Set();
     let locationWatchId = null;
     let isTracking = false;
     let locationUpdateCount = 0;
+    let recentTicketChecks = [];
 
     // Initialize the application
     document.addEventListener('DOMContentLoaded', function() {
       updateTime();
       setInterval(updateTime, 1000);
       
-      // Auto-login as conductor
+      // Auto-login and fetch conductor data
       initializeConductor();
       
       // Load notifications
@@ -281,18 +341,92 @@
       document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }
 
-    // Initialize conductor session
+    // Initialize conductor session and fetch data
     function initializeConductor() {
-      document.getElementById('conductorName').textContent = 'Rajesh Kumar';
-      document.getElementById('busTitle').textContent = 'Bus: ' + busId;
+      // Get conductor data from Firebase (assuming conductor is already logged in)
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          // Fetch conductor data from database
+          db.ref('conductors/' + user.uid).once('value')
+            .then(snapshot => {
+              conductorData = snapshot.val();
+              if (conductorData) {
+                busId = conductorData.busId;
+                loadBusData();
+                document.getElementById('conductorName').textContent = conductorData.name || 'Conductor';
+              } else {
+                // If no conductor data, use default bus ID
+                busId = "C-306";
+                showToast('Using default bus ID. Please update conductor profile.', 'warning');
+                loadBusData();
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching conductor data:', error);
+              busId = "C-306";
+              loadBusData();
+            });
+        } else {
+          // Auto-signin anonymously for demo
+          auth.signInAnonymously()
+            .then(() => {
+              busId = "C-306";
+              loadBusData();
+              showToast('Demo session started', 'info');
+            })
+            .catch(error => {
+              console.error('Auto-login error:', error);
+            });
+        }
+      });
+    }
+
+    // Load bus data from database
+    function loadBusData() {
+      if (!busId) return;
+
+      db.ref("public_transport/vehicles/" + busId).on('value', snapshot => {
+        const busData = snapshot.val();
+        
+        if (busData) {
+          // Update bus information
+          document.getElementById('busTitle').textContent = `Bus: ${busId}`;
+          document.getElementById('routeName').textContent = busData.routeName || 'Route not specified';
+          document.getElementById('currentStatus').textContent = busData.status || 'Unknown';
+          document.getElementById('passengerCount').textContent = busData.currentPassengers || '0';
+          document.getElementById('busCapacity').textContent = busData.capacity || '0';
+          document.getElementById('companyName').textContent = busData.companyName || 'Not specified';
+          
+          if (busData.lastUpdated) {
+            const lastUpdate = new Date(busData.lastUpdated);
+            document.getElementById('lastUpdateTime').textContent = lastUpdate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          }
+        } else {
+          // Create default bus data if not exists
+          createDefaultBusData();
+        }
+      });
+    }
+
+    // Create default bus data if not exists
+    function createDefaultBusData() {
+      const busData = {
+        vehicleType: 'Bus',
+        routeName: 'Central Station ↔ North Park',
+        status: 'On Time',
+        capacity: 50,
+        currentPassengers: 0,
+        companyName: 'City Transit',
+        lastUpdated: Date.now()
+      };
       
-      // Auto-signin (simulated)
-      auth.signInAnonymously()
+      db.ref("public_transport/vehicles/" + busId).set(busData)
         .then(() => {
-          showToast('Conductor session started', 'success');
+          showToast('Bus data initialized', 'success');
         })
         .catch(error => {
-          console.error('Auto-login error:', error);
+          console.error('Error creating bus data:', error);
+          showToast('Error creating bus data', 'danger');
         });
     }
 
@@ -362,8 +496,8 @@
         },
         { 
           enableHighAccuracy: true,
-          maximumAge: 3000, // 3 seconds
-          timeout: 10000    // 10 seconds
+          maximumAge: 3000,
+          timeout: 10000
         }
       );
       
@@ -475,6 +609,145 @@
       });
     }
 
+    // Verify ticket
+    function verifyTicket() {
+      const ticketInput = document.getElementById('ticketInput').value.trim();
+      
+      if (!ticketInput) {
+        showToast('Please enter a ticket ID', 'warning');
+        return;
+      }
+      
+      // Show loading state
+      const ticketResult = document.getElementById('ticketResult');
+      ticketResult.className = 'ticket-item p-3 rounded mb-3';
+      ticketResult.innerHTML = `
+        <div class="text-center">
+          <div class="spinner-border text-primary mb-2"></div>
+          <p>Verifying ticket...</p>
+        </div>
+      `;
+      ticketResult.classList.remove('d-none');
+      
+      // Simulate API call to verify ticket
+      setTimeout(() => {
+        // In real app, this would query the database
+        const isValid = Math.random() > 0.3; // 70% valid for demo
+        const ticketData = {
+          id: ticketInput,
+          passengerName: isValid ? ['Raj Sharma', 'Priya Patel', 'Amit Kumar', 'Sneha Singh'][Math.floor(Math.random() * 4)] : 'Unknown',
+          from: isValid ? 'Central Station' : 'N/A',
+          to: isValid ? 'North Park' : 'N/A',
+          fare: isValid ? '₹25' : 'N/A',
+          validUntil: isValid ? new Date(Date.now() + 2 * 60 * 60 * 1000).toLocaleTimeString() : 'N/A',
+          isValid: isValid
+        };
+        
+        displayTicketResult(ticketData);
+        addToRecentTickets(ticketData);
+        
+        // Clear input
+        document.getElementById('ticketInput').value = '';
+      }, 1500);
+    }
+
+    // Display ticket verification result
+    function displayTicketResult(ticketData) {
+      const ticketResult = document.getElementById('ticketResult');
+      const statusClass = ticketData.isValid ? 'ticket-valid' : 'ticket-invalid';
+      const statusIcon = ticketData.isValid ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger';
+      const statusText = ticketData.isValid ? 'VALID TICKET' : 'INVALID TICKET';
+      
+      ticketResult.className = `ticket-item p-3 rounded mb-3 ${statusClass}`;
+      ticketResult.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h5 class="mb-0">${statusText}</h5>
+          <i class="bi ${statusIcon} fs-4"></i>
+        </div>
+        ${ticketData.isValid ? `
+          <div class="row">
+            <div class="col-6">
+              <small class="text-muted d-block">Passenger</small>
+              <strong>${ticketData.passengerName}</strong>
+            </div>
+            <div class="col-6">
+              <small class="text-muted d-block">Ticket ID</small>
+              <strong>${ticketData.id}</strong>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-6">
+              <small class="text-muted d-block">Route</small>
+              <strong>${ticketData.from} → ${ticketData.to}</strong>
+            </div>
+            <div class="col-6">
+              <small class="text-muted d-block">Fare</small>
+              <strong>${ticketData.fare}</strong>
+            </div>
+          </div>
+          <div class="mt-2">
+            <small class="text-muted d-block">Valid Until</small>
+            <strong>${ticketData.validUntil}</strong>
+          </div>
+        ` : `
+          <p class="mb-0">This ticket is not valid or has expired.</p>
+          <small class="text-muted">Please ask passenger to purchase a valid ticket.</small>
+        `}
+      `;
+    }
+
+    // Add to recent tickets list
+    function addToRecentTickets(ticketData) {
+      recentTicketChecks.unshift({
+        ...ticketData,
+        timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      });
+      
+      // Keep only last 5 tickets
+      if (recentTicketChecks.length > 5) {
+        recentTicketChecks = recentTicketChecks.slice(0, 5);
+      }
+      
+      updateRecentTicketsUI();
+    }
+
+    // Update recent tickets UI
+    function updateRecentTicketsUI() {
+      const container = document.getElementById('recentTickets');
+      
+      if (recentTicketChecks.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-3 text-muted">
+            <i class="bi bi-ticket-perforated display-6 mb-2"></i>
+            <p>No recent ticket checks</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = '';
+      recentTicketChecks.forEach(ticket => {
+        const statusIcon = ticket.isValid ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger';
+        html += `
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <i class="bi ${statusIcon} me-2"></i>
+              <strong>${ticket.id}</strong>
+              <br>
+              <small class="text-muted">${ticket.timestamp}</small>
+            </div>
+            <div class="text-end">
+              <small class="${ticket.isValid ? 'text-success' : 'text-danger'} fw-bold">
+                ${ticket.isValid ? 'VALID' : 'INVALID'}
+              </small>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+
     // Load notifications
     function loadNotifications() {
       if (!busId) return;
@@ -503,7 +776,7 @@
           // Display notifications
           if (notifications.length === 0) {
             notifList.innerHTML = `
-              <div class="text-center py-5 text-muted">
+              <div class="text-center py-4 text-muted">
                 <i class="bi bi-bell display-4 mb-3"></i>
                 <p>No notifications</p>
                 <small>Notifications from passengers will appear here</small>
@@ -605,6 +878,13 @@
         toastContainer.removeChild(toast);
       });
     }
+
+    // Allow Enter key to verify ticket
+    document.getElementById('ticketInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        verifyTicket();
+      }
+    });
   </script>
 </body>
-</html>
+  </html>
