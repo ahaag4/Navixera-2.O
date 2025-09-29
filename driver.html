@@ -823,7 +823,7 @@
             resultDiv.innerHTML = `
               <div class="alert alert-danger">
                 <h5><i class="bi bi-x-circle me-2"></i>Ticket Not Found</h5>
-                <p><strong>Ticket ID:</strong> ${ticketId}</p>
+                <p><strong>Ticket ID:</strong> ${id}</p>
                 <p class="mb-0"><strong>Status:</strong> NOT FOUND</p>
               </div>
             `;
@@ -856,7 +856,7 @@
         resultDiv.innerHTML = `
           <div class="alert alert-danger">
             <h5><i class="bi bi-x-circle me-2"></i>Ticket Expired</h5>
-            <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
+            <p><strong>Ticket ID:</strong> ${ticketData.id}</p>
             <p><strong>Passenger:</strong> ${ticketData.passengerName || 'Unknown'}</p>
             <p><strong>Route:</strong> ${ticketData.fromStop} → ${ticketData.toStop}</p>
             <p class="mb-0"><strong>Status:</strong> EXPIRED</p>
@@ -867,7 +867,7 @@
         resultDiv.innerHTML = `
           <div class="alert alert-warning">
             <h5><i class="bi bi-exclamation-triangle me-2"></i>Wrong Bus</h5>
-            <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
+            <p><strong>Ticket ID:</strong> ${ticketData.id}</p>
             <p><strong>Passenger:</strong> ${ticketData.passengerName || 'Unknown'}</p>
             <p><strong>Valid for Bus:</strong> ${ticketData.busId}</p>
             <p class="mb-0"><strong>Status:</strong> INVALID FOR THIS BUS</p>
@@ -878,7 +878,7 @@
         resultDiv.innerHTML = `
           <div class="alert alert-success">
             <h5><i class="bi bi-check-circle me-2"></i>Ticket Valid</h5>
-            <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
+            <p><strong>Ticket ID:</strong> ${ticketData.id}</p>
             <p><strong>Passenger:</strong> ${ticketData.passengerName || 'Unknown'}</p>
             <p><strong>Route:</strong> ${ticketData.fromStop} → ${ticketData.toStop}</p>
             <p><strong>Fare:</strong> ₹${ticketData.fare}</p>
