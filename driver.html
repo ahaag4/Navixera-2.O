@@ -3,128 +3,718 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Driver App</title>
+  <title>Conductor Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
+      --bg-light: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border-radius: 12px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    body {
+      background-color: var(--bg-light);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      color: var(--text-primary);
+    }
+    
+    .navbar {
+      background: var(--card-bg);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .card {
+      border: none;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .status-btn {
+      padding: 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: var(--border-radius);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .status-btn:hover {
+      transform: translateY(-2px);
+    }
+    
+    .status-active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .notification-item {
+      border-left: 4px solid var(--primary-color);
+      transition: all 0.3s ease;
+    }
+    
+    .notification-item:hover {
+      background-color: #f1f5f9;
+    }
+    
+    .location-status {
+      background-color: #f0f9ff;
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .location-updating {
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    .bus-info-card {
+      background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+      color: white;
+    }
+    
+    .stats-card {
+      background-color: white;
+    }
+    
+    .stats-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .stats-label {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    
+    .ticket-card {
+      background-color: white;
+      border-left: 4px solid var(--success-color);
+    }
+    
+    .ticket-count {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--success-color);
+    }
+    
+    .map-container {
+      height: 200px;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      background-color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+    }
+  </style>
 </head>
-<body class="bg-light">
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <i class="bi bi-bus-front me-2" style="color: var(--primary-color); font-size: 1.5rem;"></i>
+        <span class="fw-bold">Conductor Dashboard</span>
+      </a>
+      <div class="d-flex align-items-center">
+        <div class="me-3">
+          <span id="currentTime" class="text-muted"></span>
+        </div>
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-person-circle me-1"></i>
+            <span id="conductorName">Conductor</span>
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="showBusSelector()"><i class="bi bi-bus-front me-2"></i>Change Bus</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" onclick="logoutConductor()"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
 
-<div class="container text-center mt-5">
-  <h2 class="mb-4">Driver Dashboard</h2>
-
-  <!-- Login Section -->
-  <div id="loginSection">
-    <input type="email" id="email" class="form-control mb-2" placeholder="Driver Email">
-    <input type="password" id="password" class="form-control mb-2" placeholder="Password">
-    <button class="btn btn-primary w-100" onclick="loginDriver()">Login</button>
-  </div>
-
-  <!-- Driver Panel -->
-  <div id="driverPanel" class="d-none">
-    <h4 id="busTitle" class="mb-4"></h4>
-
-    <div class="d-grid gap-3">
-      <button class="btn btn-success btn-lg" onclick="updateStatus('On Time')">🟢 On Time</button>
-      <button class="btn btn-warning btn-lg" onclick="updateStatus('Delayed')">🟡 Delayed</button>
-      <button class="btn btn-danger btn-lg" onclick="updateStatus('Crowded')">🔴 Crowded</button>
+  <!-- Main Content -->
+  <div class="container my-4">
+    <!-- Bus Information & Status -->
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <div class="card bus-info-card p-4">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <h2 id="busIdDisplay" class="fw-bold mb-1">C-306</h2>
+              <p id="routeName" class="mb-2">Central Station ↔ North Park</p>
+              <div class="d-flex align-items-center">
+                <div class="me-3">
+                  <span class="badge bg-light text-dark" id="currentStatus">On Time</span>
+                </div>
+                <div>
+                  <small><i class="bi bi-people-fill me-1"></i> <span id="passengerCount">42</span> passengers</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 text-md-end">
+              <h4 class="mb-1" id="currentTimeDisplay">10:24 AM</h4>
+              <p class="mb-0">Next Stop: <span id="nextStop">City Center</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card stats-card h-100 p-3">
+          <div class="row text-center">
+            <div class="col-6 border-end">
+              <div class="stats-value text-primary" id="ticketsSold">128</div>
+              <div class="stats-label">Tickets Today</div>
+            </div>
+            <div class="col-6">
+              <div class="stats-value text-success" id="revenue">₹3,240</div>
+              <div class="stats-label">Revenue</div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="progress" style="height: 8px;">
+              <div class="progress-bar" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <small class="text-muted">Route Completion: 65%</small>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <h5 class="mt-5">Notifications</h5>
-    <ul id="notifications" class="list-group"></ul>
+    <!-- Status Controls -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card p-3">
+          <h5 class="mb-3">Update Bus Status</h5>
+          <div class="row g-3">
+            <div class="col-md-3">
+              <button class="btn btn-success w-100 status-btn" onclick="updateStatus('On Time')">
+                <i class="bi bi-check-circle-fill"></i> On Time
+              </button>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-warning w-100 status-btn" onclick="updateStatus('Delayed')">
+                <i class="bi bi-clock-history"></i> Delayed
+              </button>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-danger w-100 status-btn" onclick="updateStatus('Crowded')">
+                <i class="bi bi-people-fill"></i> Crowded
+              </button>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-secondary w-100 status-btn" onclick="updateStatus('Out of Service')">
+                <i class="bi bi-x-circle"></i> Out of Service
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <button class="btn btn-secondary mt-4" onclick="logoutDriver()">Logout</button>
+    <!-- Location & Notifications -->
+    <div class="row">
+      <!-- Location & Tickets -->
+      <div class="col-lg-8 mb-4">
+        <div class="card p-3 mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5>Location Tracking</h5>
+            <div>
+              <span class="badge bg-success" id="locationStatus">Active</span>
+            </div>
+          </div>
+          <div class="location-status p-3 rounded mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-1">GPS Location</h6>
+                <p class="mb-0 text-muted" id="locationCoordinates">19.0760, 72.8777</p>
+                <small class="text-muted" id="locationAddress">Mumbai, Maharashtra</small>
+              </div>
+              <div class="text-end">
+                <button class="btn btn-sm btn-outline-primary" onclick="refreshLocation()">
+                  <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="map-container mb-3">
+            <div class="text-center">
+              <i class="bi bi-geo-alt-fill display-4 text-primary mb-2"></i>
+              <p>Live Location Map</p>
+              <small class="text-muted">Using conductor's GPS for bus location</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Tickets -->
+        <div class="card p-3">
+          <h5 class="mb-3">Recent Tickets</h5>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Ticket ID</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Fare</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="recentTickets">
+                <tr>
+                  <td>TKT-7832</td>
+                  <td>Central Station</td>
+                  <td>City Center</td>
+                  <td>₹25</td>
+                  <td>10:15 AM</td>
+                </tr>
+                <tr>
+                  <td>TKT-7831</td>
+                  <td>City Center</td>
+                  <td>North Park</td>
+                  <td>₹20</td>
+                  <td>10:12 AM</td>
+                </tr>
+                <tr>
+                  <td>TKT-7830</td>
+                  <td>Central Station</td>
+                  <td>North Park</td>
+                  <td>₹35</td>
+                  <td>10:08 AM</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="col-lg-4 mb-4">
+        <div class="card p-3 h-100">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5>Notifications</h5>
+            <span class="badge bg-primary" id="notificationCount">3</span>
+          </div>
+          <div id="notificationsList" style="max-height: 500px; overflow-y: auto;">
+            <div class="notification-item p-3 mb-2 rounded">
+              <div class="d-flex">
+                <div class="flex-shrink-0">
+                  <i class="bi bi-info-circle text-primary"></i>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                  <h6 class="mb-1">Lost Bag Report</h6>
+                  <p class="mb-1 small">Passenger reported a lost black backpack</p>
+                  <small class="text-muted">2 minutes ago</small>
+                </div>
+              </div>
+            </div>
+            <div class="notification-item p-3 mb-2 rounded">
+              <div class="d-flex">
+                <div class="flex-shrink-0">
+                  <i class="bi bi-exclamation-triangle text-warning"></i>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                  <h6 class="mb-1">Route Diversion</h6>
+                  <p class="mb-1 small">Temporary diversion at City Center due to road work</p>
+                  <small class="text-muted">15 minutes ago</small>
+                </div>
+              </div>
+            </div>
+            <div class="notification-item p-3 mb-2 rounded">
+              <div class="d-flex">
+                <div class="flex-shrink-0">
+                  <i class="bi bi-chat-dots text-info"></i>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                  <h6 class="mb-1">Passenger Feedback</h6>
+                  <p class="mb-1 small">"Very clean bus and friendly conductor"</p>
+                  <small class="text-muted">1 hour ago</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-<!-- 🔊 Notification Sound -->
-<audio id="notifSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+  <!-- Bus Selector Modal -->
+  <div class="modal fade" id="busSelectorModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Select Your Bus</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="busSelect" class="form-label">Bus Assignment</label>
+            <select class="form-select" id="busSelect">
+              <option value="C-306">C-306: Central Station ↔ North Park</option>
+              <option value="B-112">B-112: Downtown ↔ Airport</option>
+              <option value="A-205">A-205: East End ↔ Westgate</option>
+              <option value="D-418">D-418: South Point ↔ University</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="changeBus()">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<script>
-  // Firebase Configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyCn9YSO4-ksWl6JBqIcEEuLx2EJN8jMj4M",
-    authDomain: "svms-c0232.firebaseapp.com",
-    databaseURL: "https://svms-c0232-default-rtdb.firebaseio.com",
-    projectId: "svms-c0232",
-    storageBucket: "svms-c0232.appspot.com",
-    messagingSenderId: "359201898609",
-    appId: "1:359201898609:web:893ef076207abb06471bd0"
-  };
-  firebase.initializeApp(firebaseConfig);
+  <!-- Audio for notifications -->
+  <audio id="notifSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
-  const auth = firebase.auth();
-  const db = firebase.database();
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCn9YSO4-ksWl6JBqIcEEuLx2EJN8jMj4M",
+      authDomain: "svms-c0232.firebaseapp.com",
+      databaseURL: "https://svms-c0232-default-rtdb.firebaseio.com",
+      projectId: "svms-c0232",
+      storageBucket: "svms-c0232.appspot.com",
+      messagingSenderId: "359201898609",
+      appId: "1:359201898609:web:893ef076207abb06471bd0"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-  let busId = null;
-  let lastNotifKeys = new Set(); // track shown notifications
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-  // 🔑 Login Function
-  function loginDriver() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+    let busId = "C-306"; // Default bus
+    let lastNotifKeys = new Set(); // Track shown notifications
+    let locationWatchId = null;
 
-    auth.signInWithEmailAndPassword(email, password)
-      .then(user => {
-        // busId from email prefix, e.g. c-306@bus.com → C-306
-        busId = email.split("@")[0].toUpperCase(); 
-        document.getElementById("loginSection").classList.add("d-none");
-        document.getElementById("driverPanel").classList.remove("d-none");
-        document.getElementById("busTitle").innerText = "Bus: " + busId;
-
-        // Load notifications
-        loadNotifications();
-      })
-      .catch(err => alert("Login Failed: " + err.message));
-  }
-
-  // 🚦 Update Bus Status
-  function updateStatus(status) {
-    if (!busId) return;
-    db.ref("public_transport/vehicles/" + busId).update({
-      status: status,
-      lastUpdated: Date.now()
-    }).then(() => {
-      alert("Status updated to: " + status);
+    // Initialize the dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+      updateTime();
+      setInterval(updateTime, 1000);
+      
+      // Auto-login as conductor (simplified for demo)
+      initializeConductor();
+      
+      // Start location tracking
+      startLocationTracking();
+      
+      // Load notifications
+      loadNotifications();
     });
-  }
 
-  // 🔔 Load Notifications from correct path
-  function loadNotifications() {
-    db.ref("public_transport/vehicles/" + busId + "/notifications")
-      .on("value", snapshot => {
-        const notifList = document.getElementById("notifications");
-        notifList.innerHTML = "";
+    // Update current time
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('currentTime').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
 
-        snapshot.forEach(child => {
-          const key = child.key;
-          const notif = child.val();
+    // Initialize conductor session
+    function initializeConductor() {
+      // In a real app, this would be after authentication
+      document.getElementById('conductorName').textContent = 'Rajesh Kumar';
+      
+      // Set initial bus data
+      updateBusData();
+    }
 
-          let li = document.createElement("li");
-          li.className = "list-group-item";
-          li.innerText = `[${notif.type}] ${notif.description}`;
-          notifList.appendChild(li);
-
-          // 🔊 Play sound only for new notifications
-          if (!lastNotifKeys.has(key)) {
-            document.getElementById("notifSound").play();
-          }
-          lastNotifKeys.add(key);
-        });
+    // Update bus status
+    function updateStatus(status) {
+      if (!busId) return;
+      
+      // Update UI immediately
+      document.getElementById('currentStatus').textContent = status;
+      
+      // Update in Firebase
+      db.ref("public_transport/vehicles/" + busId).update({
+        status: status,
+        lastUpdated: Date.now()
+      }).then(() => {
+        // Show confirmation
+        showToast(`Status updated to: ${status}`, 'success');
       });
-  }
+    }
 
-  // 🚪 Logout
-  function logoutDriver() {
-    auth.signOut().then(() => {
-      busId = null;
-      lastNotifKeys.clear();
-      document.getElementById("driverPanel").classList.add("d-none");
-      document.getElementById("loginSection").classList.remove("d-none");
-    });
-  }
-</script>
+    // Start tracking conductor's location for bus
+    function startLocationTracking() {
+      if (!navigator.geolocation) {
+        document.getElementById('locationStatus').textContent = 'Unavailable';
+        document.getElementById('locationStatus').className = 'badge bg-danger';
+        return;
+      }
+      
+      document.getElementById('locationStatus').textContent = 'Tracking...';
+      document.getElementById('locationStatus').className = 'badge bg-warning';
+      
+      locationWatchId = navigator.geolocation.watchPosition(
+        position => {
+          const { latitude, longitude } = position.coords;
+          
+          // Update UI
+          document.getElementById('locationCoordinates').textContent = 
+            `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+          document.getElementById('locationStatus').textContent = 'Active';
+          document.getElementById('locationStatus').className = 'badge bg-success';
+          
+          // Update bus location in Firebase
+          if (busId) {
+            db.ref("public_transport/vehicles/" + busId).update({
+              gps: `${latitude}, ${longitude}`,
+              lastLocationUpdate: Date.now()
+            });
+          }
+          
+          // Get approximate address (simulated)
+          getAddressFromCoords(latitude, longitude);
+        },
+        error => {
+          console.error('Location error:', error);
+          document.getElementById('locationStatus').textContent = 'Error';
+          document.getElementById('locationStatus').className = 'badge bg-danger';
+        },
+        { 
+          enableHighAccuracy: true,
+          maximumAge: 10000,
+          timeout: 15000
+        }
+      );
+    }
 
+    // Simulate getting address from coordinates
+    function getAddressFromCoords(lat, lng) {
+      // In a real app, you would use a geocoding service
+      const addresses = [
+        "Mumbai Central, Maharashtra",
+        "Andheri East, Mumbai",
+        "Bandra Kurla Complex, Mumbai",
+        "Dadar West, Mumbai"
+      ];
+      
+      const randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
+      document.getElementById('locationAddress').textContent = randomAddress;
+    }
+
+    // Refresh location manually
+    function refreshLocation() {
+      document.getElementById('locationStatus').textContent = 'Updating...';
+      document.getElementById('locationStatus').className = 'badge bg-warning location-updating';
+      
+      // Force a location update
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const { latitude, longitude } = position.coords;
+            document.getElementById('locationCoordinates').textContent = 
+              `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            document.getElementById('locationStatus').textContent = 'Active';
+            document.getElementById('locationStatus').className = 'badge bg-success';
+            
+            // Update bus location
+            if (busId) {
+              db.ref("public_transport/vehicles/" + busId).update({
+                gps: `${latitude}, ${longitude}`,
+                lastLocationUpdate: Date.now()
+              });
+            }
+            
+            getAddressFromCoords(latitude, longitude);
+          },
+          error => {
+            console.error('Location error:', error);
+            document.getElementById('locationStatus').textContent = 'Error';
+            document.getElementById('locationStatus').className = 'badge bg-danger';
+          }
+        );
+      }
+    }
+
+    // Load notifications
+    function loadNotifications() {
+      if (!busId) return;
+      
+      db.ref("public_transport/vehicles/" + busId + "/notifications")
+        .on("value", snapshot => {
+          const notifList = document.getElementById("notificationsList");
+          const notifCount = document.getElementById("notificationCount");
+          
+          // Clear existing notifications (except the static examples)
+          const staticNotifs = notifList.querySelectorAll('.notification-item');
+          staticNotifs.forEach(notif => notif.remove());
+          
+          let count = 0;
+          snapshot.forEach(child => {
+            const key = child.key;
+            const notif = child.val();
+            
+            // Create notification element
+            const notifElement = document.createElement('div');
+            notifElement.className = 'notification-item p-3 mb-2 rounded';
+            
+            let iconClass = 'bi-info-circle text-primary';
+            if (notif.type === 'lost_bag') {
+              iconClass = 'bi-bag-x text-danger';
+            } else if (notif.type === 'safety_alert') {
+              iconClass = 'bi-shield-exclamation text-warning';
+            }
+            
+            notifElement.innerHTML = `
+              <div class="d-flex">
+                <div class="flex-shrink-0">
+                  <i class="bi ${iconClass}"></i>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                  <h6 class="mb-1">${notif.type ? notif.type.replace('_', ' ').toUpperCase() : 'Notification'}</h6>
+                  <p class="mb-1 small">${notif.description || 'New notification'}</p>
+                  <small class="text-muted">${formatTime(notif.timestamp)}</small>
+                </div>
+              </div>
+            `;
+            
+            notifList.prepend(notifElement);
+            count++;
+            
+            // Play sound only for new notifications
+            if (!lastNotifKeys.has(key)) {
+              document.getElementById("notifSound").play();
+              showToast('New notification received', 'info');
+            }
+            lastNotifKeys.add(key);
+          });
+          
+          // Update notification count (add static examples)
+          notifCount.textContent = count + 3;
+        });
+    }
+
+    // Format timestamp to relative time
+    function formatTime(timestamp) {
+      if (!timestamp) return 'Just now';
+      
+      const now = Date.now();
+      const diff = now - timestamp;
+      
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+      return `${Math.floor(diff / 86400000)} days ago`;
+    }
+
+    // Show bus selector modal
+    function showBusSelector() {
+      const modal = new bootstrap.Modal(document.getElementById('busSelectorModal'));
+      modal.show();
+    }
+
+    // Change bus assignment
+    function changeBus() {
+      const newBusId = document.getElementById('busSelect').value;
+      
+      if (newBusId !== busId) {
+        busId = newBusId;
+        updateBusData();
+        
+        // Show confirmation
+        showToast(`Bus changed to ${busId}`, 'success');
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('busSelectorModal'));
+        modal.hide();
+      }
+    }
+
+    // Update bus data when bus is changed
+    function updateBusData() {
+      document.getElementById('busIdDisplay').textContent = busId;
+      
+      // Update route name based on bus
+      const routes = {
+        'C-306': 'Central Station ↔ North Park',
+        'B-112': 'Downtown ↔ Airport',
+        'A-205': 'East End ↔ Westgate',
+        'D-418': 'South Point ↔ University'
+      };
+      
+      document.getElementById('routeName').textContent = routes[busId] || 'Route not specified';
+      
+      // Reload notifications for the new bus
+      loadNotifications();
+    }
+
+    // Logout conductor
+    function logoutConductor() {
+      if (locationWatchId) {
+        navigator.geolocation.clearWatch(locationWatchId);
+      }
+      
+      // In a real app, you would sign out from Firebase
+      showToast('Logged out successfully', 'info');
+      
+      // Simulate redirect after a delay
+      setTimeout(() => {
+        alert('Redirecting to login page...');
+        // In a real app: window.location.href = 'login.html';
+      }, 1000);
+    }
+
+    // Show toast notification
+    function showToast(message, type = 'info') {
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `toast align-items-center text-bg-${type} border-0`;
+      toast.setAttribute('role', 'alert');
+      
+      toast.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+      `;
+      
+      // Add to page
+      document.body.appendChild(toast);
+      
+      // Initialize and show
+      const bsToast = new bootstrap.Toast(toast);
+      bsToast.show();
+      
+      // Remove after hidden
+      toast.addEventListener('hidden.bs.toast', () => {
+        document.body.removeChild(toast);
+      });
+    }
+  </script>
 </body>
   </html>
