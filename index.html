@@ -1526,7 +1526,6 @@
       let currentSelectedBus = null;
       let currentTicketData = null;
       let languages = {
-        
   en: {
     title: 'Live Public Transit Dashboard — Navixera',
     findRide: 'Find Your Ride',
@@ -1986,8 +1985,7 @@
     history: 'Historique',
     safetyAlert: 'Alerte de Sécurité',
     chat: 'Chat'
-  }
-
+      }
       };
       let currentLang = 'en';
 
@@ -3636,4 +3634,108 @@
         if (dom.closeSidebarBtn) dom.closeSidebarBtn.addEventListener('click', hideVehicleDetails);
         if (dom.closeBusStopPanelBtn) dom.closeBusStopPanelBtn.addEventListener('click', hideBusStopPanel);
         if (dom.searchVehicleInput) dom.searchVehicleInput.addEventListener('keypress', e => { if (e.key === 'Enter') searchByVehicleNumber(); });
-        if (dom.searchRouteFrom) d
+        if (dom.searchRouteFrom) dom.searchRouteFrom.addEventListener('keypress', e => { if (e.key === 'Enter') searchByRoute(); });
+        if (dom.searchRouteTo) dom.searchRouteTo.addEventListener('keypress', e => { if (e.key === 'Enter') searchByRoute(); });
+
+        // Auth
+        if (dom.loginBtn) dom.loginBtn.addEventListener('click', () => new bootstrap.Modal(document.getElementById('loginModal')).show());
+        if (dom.logoutBtn) dom.logoutBtn.addEventListener('click', logout);
+        if (dom.editProfileBtn) dom.editProfileBtn.addEventListener('click', showEditProfile);
+        if (dom.saveProfileBtn) dom.saveProfileBtn.addEventListener('click', saveProfile);
+        if (dom.historyBtn) dom.historyBtn.addEventListener('click', showHistory);
+        if (dom.myTicketsBtn) dom.myTicketsBtn.addEventListener('click', showMyTicketsModal);
+
+        // Alerts and lost bag
+        if (dom.setAlertBtn) dom.setAlertBtn.addEventListener('click', setBusAlert);
+        if (dom.reportLostBagBtn) dom.reportLostBagBtn.addEventListener('click', reportLostBag);
+
+        // Ticket
+        if (dom.payTicketBtn) dom.payTicketBtn.addEventListener('click', buyTicket);
+        if (dom.usePoints) dom.usePoints.addEventListener('input', calculateTicketFare);
+        if (dom.ticketBusSelect) dom.ticketBusSelect.addEventListener('change', (e) => {
+          updateTicketStops(e.target.value);
+        });
+        if (dom.ticketFrom) dom.ticketFrom.addEventListener('change', calculateTicketFare);
+        if (dom.ticketTo) dom.ticketTo.addEventListener('change', calculateTicketFare);
+        if (dom.passengerCount) dom.passengerCount.addEventListener('change', calculateTicketFare);
+
+        // Payment method selection
+        document.querySelectorAll('.payment-method').forEach(method => {
+          method.addEventListener('click', function() {
+            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Show/hide payment input fields
+            const methodType = this.getAttribute('data-method');
+            if (methodType === 'upi') {
+              document.querySelector('.upi-input').style.display = 'block';
+            } else {
+              document.querySelector('.upi-input').style.display = 'none';
+            }
+          });
+        });
+
+        // Download ticket
+        if (dom.downloadTicketBtn) dom.downloadTicketBtn.addEventListener('click', function() {
+          // In a real implementation, this would generate a downloadable ticket
+          showToast('Ticket download feature would be implemented here', 'info');
+        });
+
+        // Safety
+        if (dom.safetyBtn) dom.safetyBtn.addEventListener('click', sendSafetyAlert);
+        if (dom.confirmSafetyAlertBtn) dom.confirmSafetyAlertBtn.addEventListener('click', confirmSafetyAlert);
+
+        // Language
+        if (dom.languageSelect) dom.languageSelect.addEventListener('change', (e) => {
+          currentLang = e.target.value;
+          updateLanguage();
+        });
+
+        // Points
+        if (dom.dailyCheckInBtn) dom.dailyCheckInBtn.addEventListener('click', dailyCheckIn);
+
+        // Chat
+        if (dom.chatBusSelect) {
+          dom.chatBusSelect.addEventListener('change', (e) => startChat(e.target.value));
+        }
+        if (dom.sendChatBtn) dom.sendChatBtn.addEventListener('click', sendChat);
+        if (dom.chatInput) {
+          dom.chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChat();
+          });
+        }
+
+        // Initialize chat modal
+        initializeChatModal();
+      };
+
+      // Initialization
+      document.addEventListener('DOMContentLoaded', () => {
+        showLoader();
+
+        // Load any saved bus alerts
+        const savedAlerts = localStorage.getItem('busAlerts');
+        if (savedAlerts) {
+          try { busAlerts = JSON.parse(savedAlerts); } catch (e) { busAlerts = {}; }
+        }
+
+        auth.onAuthStateChanged(handleAuthState);
+
+        initMap();
+        loadPublicVehicles();
+        loadBusStops();
+        addEventListeners();
+
+        // Start checking for bus alerts
+        alertCheckInterval = setInterval(checkBusAlerts, 10000); // Check every 10 seconds
+
+        // initial locate, but don't block if fails
+        locateUser().catch(() => {
+          console.log("Initial geolocation attempt failed; user can manually trigger location.");
+          hideLoader();
+        });
+      });
+    })();
+  </script>
+</body>
+  </html>
