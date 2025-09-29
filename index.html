@@ -2406,7 +2406,7 @@
         const text = dom.chatInput.value.trim();
         if (text) {
           db.ref(`chats/${currentChatBus}`).push({
-            user: name,
+            user: profileName,
             text,
             timestamp: Date.now()
           });
