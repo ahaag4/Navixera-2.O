@@ -3,12 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Conductor Dashboard for managing bus status, location, and ticket verification">
   <title>Conductor Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
     :root {
       --primary-color: #2563eb;
@@ -21,29 +19,24 @@
       --text-primary: #1e293b;
       --text-secondary: #64748b;
     }
-    
     body {
       background-color: var(--bg-light);
       font-family: 'Segoe UI', system-ui, sans-serif;
     }
-    
     .navbar {
       background: var(--card-bg);
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    
     .card {
       border: none;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       transition: all 0.3s ease;
     }
-    
     .card:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    
     .status-btn {
       padding: 1rem;
       font-size: 1.1rem;
@@ -51,71 +44,100 @@
       border-radius: 10px;
       transition: all 0.3s ease;
     }
-    
     .status-btn:hover {
       transform: translateY(-2px);
     }
-    
     .location-control {
       background: linear-gradient(135deg, var(--primary-color), #3b82f6);
       color: white;
       border-radius: 12px;
     }
-    
     .notification-item {
       border-left: 4px solid var(--primary-color);
       transition: all 0.3s ease;
     }
-    
     .notification-item:hover {
       background-color: #f1f5f9;
     }
-    
     .ticket-item {
       border-left: 4px solid var(--success-color);
     }
-    
     .ticket-valid {
       border-left-color: var(--success-color);
     }
-    
     .ticket-invalid {
       border-left-color: var(--danger-color);
     }
-    
     .location-updating {
       animation: pulse 1.5s infinite;
     }
-    
     @keyframes pulse {
       0% { opacity: 1; }
       50% { opacity: 0.7; }
       100% { opacity: 1; }
     }
-    
     .bus-info-card {
       background: linear-gradient(135deg, var(--primary-color), #3b82f6);
       color: white;
     }
+    .flash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      color: white;
+      transition: opacity 0.3s ease;
+    }
+    @media (max-width: 576px) {
+      .navbar-brand {
+        font-size: 1.2rem;
+      }
+      .status-btn {
+        font-size: 1rem;
+        padding: 0.75rem;
+      }
+      .bus-info-card h2 {
+        font-size: 1.5rem;
+      }
+      .map-display {
+        height: 150px;
+      }
+    }
   </style>
 </head>
 <body>
+  <!-- Flash Screen -->
+  <div class="flash-screen">
+    <div class="text-center">
+      <h1>Conductor Dashboard</h1>
+      <div class="spinner-border text-white" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg">
+  <nav class="navbar navbar-expand-lg sticky-top">
     <div class="container">
       <a class="navbar-brand d-flex align-items-center fw-bold text-primary" href="#">
         <i class="bi bi-bus-front me-2 fs-4"></i>
         Conductor Dashboard
       </a>
       <div class="d-flex align-items-center">
-        <span id="currentTime" class="text-muted me-3"></span>
+        <span id="currentTime" class="text-muted me-3" aria-live="polite"></span>
         <div class="dropdown">
-          <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="bi bi-person-circle me-2"></i>
-            <span id="conductorName">Loading...</span>
+            <span id="conductorName" aria-label="Conductor name">Loading...</span>
           </button>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#" onclick="logoutConductor()">
+            <li><a class="dropdown-item" href="#" id="logoutBtn">
               <i class="bi bi-box-arrow-right me-2"></i>Logout
             </a></li>
           </ul>
@@ -136,10 +158,10 @@
               <p class="mb-2 opacity-75" id="routeName">Fetching route information...</p>
               <div class="d-flex align-items-center">
                 <div class="me-3">
-                  <span class="badge bg-light text-dark" id="currentStatus">Unknown</span>
+                  <span class="badge bg-light text-dark" id="currentStatus" aria-label="Bus status">Unknown</span>
                 </div>
                 <div class="me-3">
-                  <small><i class="bi bi-people-fill me-1"></i> <span id="passengerCount">-</span>/<span id="busCapacity">-</span> capacity</small>
+                  <small><i class="bi bi-people-fill me-1"></i> <span id="passengerCount">0</span>/<span id="busCapacity">0</span> capacity</small>
                 </div>
                 <div>
                   <small><i class="bi bi-building me-1"></i> <span id="companyName">Loading...</span></small>
@@ -147,7 +169,7 @@
               </div>
             </div>
             <div class="col-md-4 text-md-end">
-              <h4 class="mb-1" id="currentTimeDisplay">--:-- --</h4>
+              <h4 class="mb-1" id="currentTimeDisplay" aria-live="polite">--:-- --</h4>
               <p class="mb-0 opacity-75">Last Update: <span id="lastUpdateTime">--:--</span></p>
             </div>
           </div>
@@ -165,10 +187,10 @@
               <p class="mb-0 text-white-50" id="locationStatusText">Click Start to begin automatic location tracking</p>
             </div>
             <div class="col-md-4 text-md-end">
-              <button class="btn btn-light btn-lg me-2" id="startLocationBtn" onclick="startLocationTracking()">
+              <button class="btn btn-light btn-lg me-2" id="startLocationBtn" aria-label="Start location tracking">
                 <i class="bi bi-play-circle me-2"></i>Start Tracking
               </button>
-              <button class="btn btn-outline-light btn-lg" id="stopLocationBtn" onclick="stopLocationTracking()" disabled>
+              <button class="btn btn-outline-light btn-lg" id="stopLocationBtn" disabled aria-label="Stop location tracking">
                 <i class="bi bi-stop-circle me-2"></i>Stop Tracking
               </button>
             </div>
@@ -185,22 +207,22 @@
           <h5 class="mb-3"><i class="bi bi-speedometer2 me-2 text-primary"></i>Update Bus Status</h5>
           <div class="row g-3">
             <div class="col-md-6">
-              <button class="btn btn-success w-100 status-btn" onclick="updateStatus('On Time')">
+              <button class="btn btn-success w-100 status-btn" data-status="On Time" aria-label="Set status to On Time">
                 <i class="bi bi-check-circle-fill me-2"></i>On Time
               </button>
             </div>
             <div class="col-md-6">
-              <button class="btn btn-warning w-100 status-btn" onclick="updateStatus('Delayed')">
+              <button class="btn btn-warning w-100 status-btn" data-status="Delayed" aria-label="Set status to Delayed">
                 <i class="bi bi-clock-history me-2"></i>Delayed
               </button>
             </div>
             <div class="col-md-6">
-              <button class="btn btn-danger w-100 status-btn" onclick="updateStatus('Crowded')">
+              <button class="btn btn-danger w-100 status-btn" data-status="Crowded" aria-label="Set status to Crowded">
                 <i class="bi bi-people-fill me-2"></i>Crowded
               </button>
             </div>
             <div class="col-md-6">
-              <button class="btn btn-secondary w-100 status-btn" onclick="updateStatus('Out of Service')">
+              <button class="btn btn-secondary w-100 status-btn" data-status="Out of Service" aria-label="Set status to Out of Service">
                 <i class="bi bi-x-circle me-2"></i>Out of Service
               </button>
             </div>
@@ -211,9 +233,8 @@
         <div class="card p-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5><i class="bi bi-geo me-2 text-primary"></i>Live Location Data</h5>
-            <span class="badge bg-success fs-6" id="locationStatusBadge">Ready</span>
+            <span class="badge bg-success fs-6" id="locationStatusBadge" aria-label="Location status">Ready</span>
           </div>
-          
           <div class="location-info p-3 rounded mb-3" style="background-color: #f0f9ff; border-left: 4px solid var(--primary-color);">
             <div class="row">
               <div class="col-md-6">
@@ -224,14 +245,12 @@
               <div class="col-md-6 text-md-end">
                 <h6 class="text-primary mb-2">Tracking Info</h6>
                 <p class="mb-1">Updates Sent: <span id="locationUpdateCount" class="fw-bold">0</span></p>
-                <button class="btn btn-sm btn-outline-primary mt-2" onclick="refreshLocation()">
+                <button class="btn btn-sm btn-outline-primary mt-2" id="refreshLocationBtn" aria-label="Refresh location">
                   <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                 </button>
               </div>
             </div>
           </div>
-
-          <!-- Map Display -->
           <div class="map-display rounded mb-3" style="height: 200px; background: linear-gradient(135deg, #e2e8f0, #cbd5e1); display: flex; align-items: center; justify-content: center; color: #64748b;">
             <div class="text-center">
               <i class="bi bi-geo-alt-fill display-4 mb-3"></i>
@@ -242,26 +261,21 @@
         </div>
       </div>
 
-      <!-- Right Column - Notifications & Tickets -->
+      <!-- Right Column - Tickets & Notifications -->
       <div class="col-lg-6">
-        <!-- Ticket Checking Section -->
+        <!-- Ticket Verification Section -->
         <div class="card p-4 mb-4">
           <h5 class="mb-3"><i class="bi bi-ticket-perforated me-2 text-primary"></i>Ticket Verification</h5>
-          
           <div class="mb-3">
             <label for="ticketInput" class="form-label">Enter Ticket ID or Scan QR Code</label>
             <div class="input-group">
-              <input type="text" class="form-control" id="ticketInput" placeholder="TKT-123456 or scan QR code">
-              <button class="btn btn-primary" onclick="verifyTicket()">
+              <input type="text" class="form-control" id="ticketInput" placeholder="e.g., T123456789" aria-label="Ticket ID">
+              <button class="btn btn-primary" id="verifyTicketBtn" aria-label="Verify ticket">
                 <i class="bi bi-check-circle me-1"></i>Verify
               </button>
             </div>
           </div>
-
-          <div id="ticketResult" class="d-none">
-            <!-- Ticket result will be shown here -->
-          </div>
-
+          <div id="ticketResult" class="d-none"></div>
           <div class="mt-3">
             <h6>Recent Ticket Checks</h6>
             <div id="recentTickets" style="max-height: 200px; overflow-y: auto;">
@@ -277,7 +291,7 @@
         <div class="card p-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5><i class="bi bi-bell me-2 text-primary"></i>Notifications</h5>
-            <span class="badge bg-primary fs-6" id="notificationCount">0</span>
+            <span class="badge bg-primary fs-6" id="notificationCount" aria-label="Notification count">0</span>
           </div>
           <div id="notificationsList" style="max-height: 300px; overflow-y: auto;">
             <div class="text-center py-4 text-muted">
@@ -294,405 +308,383 @@
   <!-- Toast Container -->
   <div class="toast-container position-fixed top-0 end-0 p-3"></div>
 
-  <!-- Audio for notifications -->
+  <!-- Audio for Notifications -->
   <audio id="notifSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
   <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyCn9YSO4-ksWl6JBqIcEEuLx2EJN8jMj4M",
-      authDomain: "svms-c0232.firebaseapp.com",
-      databaseURL: "https://svms-c0232-default-rtdb.firebaseio.com",
-      projectId: "svms-c0232",
-      storageBucket: "svms-c0232.appspot.com",
-      messagingSenderId: "359201898609",
-      appId: "1:359201898609:web:893ef076207abb06471bd0"
+    // DOM Elements
+    const dom = {
+      flashScreen: document.querySelector('.flash-screen'),
+      currentTime: document.querySelector('#currentTime'),
+      currentTimeDisplay: document.querySelector('#currentTimeDisplay'),
+      conductorName: document.querySelector('#conductorName'),
+      logoutBtn: document.querySelector('#logoutBtn'),
+      busTitle: document.querySelector('#busTitle'),
+      routeName: document.querySelector('#routeName'),
+      currentStatus: document.querySelector('#currentStatus'),
+      passengerCount: document.querySelector('#passengerCount'),
+      busCapacity: document.querySelector('#busCapacity'),
+      companyName: document.querySelector('#companyName'),
+      lastUpdateTime: document.querySelector('#lastUpdateTime'),
+      startLocationBtn: document.querySelector('#startLocationBtn'),
+      stopLocationBtn: document.querySelector('#stopLocationBtn'),
+      locationStatusText: document.querySelector('#locationStatusText'),
+      locationStatusBadge: document.querySelector('#locationStatusBadge'),
+      locationCoordinates: document.querySelector('#locationCoordinates'),
+      locationAddress: document.querySelector('#locationAddress'),
+      locationUpdateCount: document.querySelector('#locationUpdateCount'),
+      refreshLocationBtn: document.querySelector('#refreshLocationBtn'),
+      mapStatus: document.querySelector('#mapStatus'),
+      ticketInput: document.querySelector('#ticketInput'),
+      verifyTicketBtn: document.querySelector('#verifyTicketBtn'),
+      ticketResult: document.querySelector('#ticketResult'),
+      recentTickets: document.querySelector('#recentTickets'),
+      notificationsList: document.querySelector('#notificationsList'),
+      notificationCount: document.querySelector('#notificationCount')
     };
-    firebase.initializeApp(firebaseConfig);
 
-    const auth = firebase.auth();
-    const db = firebase.database();
-
+    // Global Variables
     let busId = null;
-    let conductorData = null;
-    let lastNotifKeys = new Set();
     let locationWatchId = null;
     let isTracking = false;
     let locationUpdateCount = 0;
     let recentTicketChecks = [];
+    let lastNotifKeys = new Set();
 
-    // Initialize the application
-    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Firebase
+    fetch('/firebase-config')
+      .then(response => response.json())
+      .then(config => {
+        firebase.initializeApp(config);
+        initApp();
+      })
+      .catch(err => {
+        console.error('Failed to load Firebase config:', err);
+        showToast('Failed to initialize application.', 'danger');
+      });
+
+    // Initialize Application
+    function initApp() {
       updateTime();
       setInterval(updateTime, 1000);
-      
-      // Auto-login and fetch conductor data
-      initializeConductor();
-    });
+      dom.logoutBtn.addEventListener('click', logoutConductor);
+      dom.startLocationBtn.addEventListener('click', startLocationTracking);
+      dom.stopLocationBtn.addEventListener('click', stopLocationTracking);
+      dom.refreshLocationBtn.addEventListener('click', refreshLocation);
+      dom.verifyTicketBtn.addEventListener('click', verifyTicket);
+      dom.ticketInput.addEventListener('keypress', e => e.key === 'Enter' && verifyTicket());
+      document.querySelectorAll('.status-btn').forEach(btn => {
+        btn.addEventListener('click', () => updateStatus(btn.dataset.status));
+      });
 
-    // Update current time
+      firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+          initializeConductor(user);
+        } else {
+          showToast('Please log in to continue.', 'warning');
+          setTimeout(() => window.location.href = '/login.html', 2000);
+        }
+      });
+
+      setTimeout(() => {
+        dom.flashScreen.style.opacity = '0';
+        setTimeout(() => dom.flashScreen.remove(), 300);
+      }, 1000);
+
+      window.addEventListener('error', event => {
+        showToast('An unexpected error occurred.', 'danger');
+        console.error('Global error:', event.error);
+      });
+    }
+
+    // Update Time
     function updateTime() {
       const now = new Date();
-      document.getElementById('currentTime').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      dom.currentTime.textContent = timeString;
+      dom.currentTimeDisplay.textContent = timeString;
     }
 
-    // Initialize conductor session and fetch data
-    function initializeConductor() {
-      // Get the current authenticated user
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          // Fetch conductor data from database using UID
-          db.ref('conductors/' + user.uid).once('value')
-            .then(snapshot => {
-              conductorData = snapshot.val();
-              if (conductorData && conductorData.busId) {
-                busId = conductorData.busId;
-                document.getElementById('conductorName').textContent = conductorData.name || 'Conductor';
-                loadBusData();
-                loadNotifications();
-              } else {
-                showToast('No bus assigned to this conductor', 'warning');
-                document.getElementById('conductorName').textContent = 'No Bus Assigned';
-                document.getElementById('busTitle').textContent = 'No Bus Assigned';
-                document.getElementById('routeName').textContent = 'Please contact administrator';
-              }
-            })
-            .catch(error => {
-              console.error('Error fetching conductor data:', error);
-              showToast('Error loading conductor data', 'danger');
-            });
-        } else {
-          // Auto-signin anonymously for demo purposes
-          auth.signInAnonymously()
-            .then((userCredential) => {
-              // For demo, try to get bus ID from URL parameter or use a default
-              const urlParams = new URLSearchParams(window.location.search);
-              busId = urlParams.get('busId') || 'C-306';
-              
-              // Try to load bus data
-              loadBusData();
-              loadNotifications();
-              showToast('Demo session started', 'info');
-            })
-            .catch(error => {
-              console.error('Auto-login error:', error);
-              showToast('Login required', 'danger');
-            });
-        }
-      });
+    // Authentication
+    function initializeConductor(user) {
+      firebase.database().ref(`conductors/${user.uid}`).once('value')
+        .then(snapshot => {
+          const conductorData = snapshot.val();
+          if (!conductorData || !conductorData.busId) {
+            showToast('No bus assigned. Contact admin.', 'danger');
+            firebase.auth().signOut();
+            return;
+          }
+          busId = conductorData.busId;
+          dom.conductorName.textContent = conductorData.name || 'Conductor';
+          loadBusData();
+          loadNotifications();
+        })
+        .catch(error => {
+          console.error('Error fetching conductor data:', error);
+          showToast('Error loading profile.', 'danger');
+          firebase.auth().signOut();
+        });
     }
 
-    // Load bus data from database
+    async function logoutConductor() {
+      try {
+        if (locationWatchId) navigator.geolocation.clearWatch(locationWatchId);
+        await firebase.auth().signOut();
+        showToast('Logged out successfully.', 'info');
+      } catch (error) {
+        console.error('Logout error:', error);
+        showToast('Error logging out.', 'danger');
+      }
+    }
+
+    // Bus Data
     function loadBusData() {
       if (!busId) {
-        showToast('No bus ID available', 'warning');
+        showToast('No bus assigned.', 'danger');
         return;
       }
-
-      db.ref("public_transport/vehicles/" + busId).on('value', snapshot => {
+      firebase.database().ref(`public_transport/vehicles/${busId}`).on('value', snapshot => {
         const busData = snapshot.val();
-        
         if (busData) {
-          // Update bus information with actual data from database
-          document.getElementById('busTitle').textContent = `Bus: ${busId}`;
-          document.getElementById('routeName').textContent = busData.routeName || 'Route not specified';
-          document.getElementById('currentStatus').textContent = busData.status || 'Not Set';
-          document.getElementById('passengerCount').textContent = busData.currentPassengers || '0';
-          document.getElementById('busCapacity').textContent = busData.capacity || '0';
-          document.getElementById('companyName').textContent = busData.companyName || 'Not specified';
-          
+          dom.busTitle.textContent = `Bus: ${busId}`;
+          dom.routeName.textContent = busData.routeName || 'Route not specified';
+          dom.currentStatus.textContent = busData.status || 'Unknown';
+          dom.passengerCount.textContent = busData.currentPassengers || '0';
+          dom.busCapacity.textContent = busData.capacity || '0';
+          dom.companyName.textContent = busData.companyName || 'Not specified';
           if (busData.lastUpdated) {
-            const lastUpdate = new Date(busData.lastUpdated);
-            document.getElementById('lastUpdateTime').textContent = lastUpdate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            dom.lastUpdateTime.textContent = new Date(busData.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           }
         } else {
-          // Show message if no bus data found
-          document.getElementById('busTitle').textContent = `Bus: ${busId}`;
-          document.getElementById('routeName').textContent = 'No bus data found in database';
-          document.getElementById('currentStatus').textContent = 'Unknown';
-          document.getElementById('passengerCount').textContent = '-';
-          document.getElementById('busCapacity').textContent = '-';
-          document.getElementById('companyName').textContent = 'Not found';
-          showToast('Bus data not found in database', 'warning');
+          showToast(`Bus ${busId} not found.`, 'danger');
+          dom.busTitle.textContent = `Bus: ${busId} (Not Found)`;
+          dom.routeName.textContent = 'No route information';
+          dom.currentStatus.textContent = 'Unknown';
+          dom.passengerCount.textContent = '0';
+          dom.busCapacity.textContent = '0';
+          dom.companyName.textContent = 'Not specified';
+          dom.lastUpdateTime.textContent = '--:--';
         }
-      }, error => {
-        console.error('Error loading bus data:', error);
-        showToast('Error loading bus data', 'danger');
       });
     }
 
-    // Start automatic location tracking
-    function startLocationTracking() {
-      if (!busId) {
-        showToast('No bus assigned. Cannot track location.', 'warning');
-        return;
+    async function updateStatus(status) {
+      if (!busId) return;
+      try {
+        await firebase.database().ref(`public_transport/vehicles/${busId}`).update({
+          status,
+          lastUpdated: Date.now()
+        });
+        showToast(`Status updated to: ${status}`, 'success');
+        dom.lastUpdateTime.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (error) {
+        console.error('Error updating status:', error);
+        showToast('Error updating status.', 'danger');
       }
+    }
 
+    // Location Tracking
+    function startLocationTracking() {
       if (!navigator.geolocation) {
-        showToast('Geolocation is not supported by your browser', 'danger');
+        showToast('Geolocation not supported.', 'danger');
         return;
       }
-      
       if (isTracking) {
-        showToast('Location tracking is already active', 'info');
+        showToast('Location tracking already active.', 'info');
         return;
       }
-      
-      // Update UI
-      document.getElementById('startLocationBtn').disabled = true;
-      document.getElementById('stopLocationBtn').disabled = false;
-      document.getElementById('locationStatusText').textContent = 'Automatic location tracking active';
-      document.getElementById('locationStatusBadge').textContent = 'Tracking';
-      document.getElementById('locationStatusBadge').className = 'badge bg-warning fs-6';
-      document.getElementById('mapStatus').textContent = 'Tracking location in real-time...';
-      
-      showToast('Starting automatic location tracking...', 'info');
-      
-      // Start watching position
+      dom.startLocationBtn.disabled = true;
+      dom.stopLocationBtn.disabled = false;
+      dom.locationStatusText.textContent = 'Automatic location tracking active';
+      dom.locationStatusBadge.textContent = 'Tracking';
+      dom.locationStatusBadge.className = 'badge bg-warning fs-6';
+      dom.mapStatus.textContent = 'Tracking location in real-time...';
+      showToast('Starting location tracking...', 'info');
+
       locationWatchId = navigator.geolocation.watchPosition(
         position => {
           const { latitude, longitude } = position.coords;
           locationUpdateCount++;
-          
-          // Update UI
-          document.getElementById('locationCoordinates').textContent = 
-            `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-          document.getElementById('locationStatusBadge').textContent = 'Active';
-          document.getElementById('locationStatusBadge').className = 'badge bg-success fs-6';
-          document.getElementById('locationUpdateCount').textContent = locationUpdateCount;
-          document.getElementById('lastUpdateTime').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-          
-          // Get approximate address
-          getAddressFromCoords(latitude, longitude);
-          
-          // Update bus location in Firebase
+          updateLocationUI(latitude, longitude);
           updateBusLocation(latitude, longitude);
         },
         error => {
           console.error('Location error:', error);
           let errorMessage = 'Unknown location error';
-          
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Location access denied by user';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Location information unavailable';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'Location request timed out';
-              break;
+          switch (error.code) {
+            case error.PERMISSION_DENIED: errorMessage = 'Location access denied'; break;
+            case error.POSITION_UNAVAILABLE: errorMessage = 'Location unavailable'; break;
+            case error.TIMEOUT: errorMessage = 'Location request timed out'; break;
           }
-          
-          document.getElementById('locationStatusBadge').textContent = 'Error';
-          document.getElementById('locationStatusBadge').className = 'badge bg-danger fs-6';
-          document.getElementById('mapStatus').textContent = errorMessage;
-          
+          dom.locationStatusBadge.textContent = 'Error';
+          dom.locationStatusBadge.className = 'badge bg-danger fs-6';
+          dom.mapStatus.textContent = errorMessage;
           showToast(errorMessage, 'danger');
         },
-        { 
-          enableHighAccuracy: true,
-          maximumAge: 3000,
-          timeout: 10000
-        }
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
       );
-      
       isTracking = true;
-      showToast('Automatic location tracking started', 'success');
+      showToast('Location tracking started.', 'success');
     }
 
-    // Stop location tracking
     function stopLocationTracking() {
       if (!isTracking) {
-        showToast('Location tracking is not active', 'info');
+        showToast('Location tracking not active.', 'info');
         return;
       }
-      
-      if (locationWatchId) {
-        navigator.geolocation.clearWatch(locationWatchId);
-        locationWatchId = null;
-      }
-      
-      // Update UI
-      document.getElementById('startLocationBtn').disabled = false;
-      document.getElementById('stopLocationBtn').disabled = true;
-      document.getElementById('locationStatusText').textContent = 'Location tracking stopped';
-      document.getElementById('locationStatusBadge').textContent = 'Stopped';
-      document.getElementById('locationStatusBadge').className = 'badge bg-secondary fs-6';
-      document.getElementById('mapStatus').textContent = 'Location tracking stopped';
-      
+      if (locationWatchId) navigator.geolocation.clearWatch(locationWatchId);
+      dom.startLocationBtn.disabled = false;
+      dom.stopLocationBtn.disabled = true;
+      dom.locationStatusText.textContent = 'Location tracking stopped';
+      dom.locationStatusBadge.textContent = 'Stopped';
+      dom.locationStatusBadge.className = 'badge bg-secondary fs-6';
+      dom.mapStatus.textContent = 'Location tracking stopped';
       isTracking = false;
-      showToast('Location tracking stopped', 'info');
+      showToast('Location tracking stopped.', 'info');
     }
 
-    // Update bus location in Firebase
-    function updateBusLocation(latitude, longitude) {
-      if (!busId) return;
-      
-      const locationData = {
-        gps: `${latitude}, ${longitude}`,
-        lastLocationUpdate: Date.now()
-      };
-      
-      db.ref("public_transport/vehicles/" + busId).update(locationData)
-        .catch(error => {
-          console.error('Error updating location:', error);
-          showToast('Error updating location in database', 'danger');
-        });
-    }
-
-    // Simulate getting address from coordinates
-    function getAddressFromCoords(lat, lng) {
-      const addresses = [
-        "Mumbai Central, Maharashtra",
-        "Andheri East, Mumbai",
-        "Bandra Kurla Complex, Mumbai",
-        "Dadar West, Mumbai",
-        "Churchgate, Mumbai"
-      ];
-      
-      const addressIndex = Math.abs(Math.floor(lat * 1000)) % addresses.length;
-      const address = addresses[addressIndex];
-      
-      document.getElementById('locationAddress').textContent = address;
-    }
-
-    // Refresh location manually
     function refreshLocation() {
-      if (!busId) {
-        showToast('No bus assigned', 'warning');
-        return;
-      }
-
       if (!navigator.geolocation) {
-        showToast('Geolocation not available', 'danger');
+        showToast('Geolocation not available.', 'danger');
         return;
       }
-      
-      document.getElementById('locationStatusBadge').textContent = 'Updating...';
-      document.getElementById('locationStatusBadge').className = 'badge bg-warning fs-6 location-updating';
-      
+      dom.locationStatusBadge.textContent = 'Updating...';
+      dom.locationStatusBadge.className = 'badge bg-warning fs-6 location-updating';
       navigator.geolocation.getCurrentPosition(
         position => {
           const { latitude, longitude } = position.coords;
-          document.getElementById('locationCoordinates').textContent = 
-            `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-          document.getElementById('locationStatusBadge').textContent = 'Active';
-          document.getElementById('locationStatusBadge').className = 'badge bg-success fs-6';
-          
-          getAddressFromCoords(latitude, longitude);
+          updateLocationUI(latitude, longitude);
           updateBusLocation(latitude, longitude);
-          
-          showToast('Location refreshed manually', 'success');
+          showToast('Location refreshed.', 'success');
         },
         error => {
           console.error('Location error:', error);
-          document.getElementById('locationStatusBadge').textContent = 'Error';
-          document.getElementById('locationStatusBadge').className = 'badge bg-danger fs-6';
-          showToast('Failed to get location', 'danger');
+          dom.locationStatusBadge.textContent = 'Error';
+          dom.locationStatusBadge.className = 'badge bg-danger fs-6';
+          showToast('Failed to get location.', 'danger');
         }
       );
     }
 
-    // Update bus status
-    function updateStatus(status) {
-      if (!busId) {
-        showToast('No bus assigned. Cannot update status.', 'warning');
-        return;
-      }
-      
-      db.ref("public_transport/vehicles/" + busId).update({
-        status: status,
-        lastUpdated: Date.now()
-      }).then(() => {
-        showToast(`Status updated to: ${status}`, 'success');
-        document.getElementById('lastUpdateTime').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      }).catch(error => {
-        console.error('Error updating status:', error);
-        showToast('Error updating status', 'danger');
-      });
+    function updateLocationUI(latitude, longitude) {
+      dom.locationCoordinates.textContent = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      dom.locationStatusBadge.textContent = 'Active';
+      dom.locationStatusBadge.className = 'badge bg-success fs-6';
+      dom.locationUpdateCount.textContent = locationUpdateCount;
+      dom.lastUpdateTime.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      getAddressFromCoords(latitude, longitude);
     }
 
-    // Verify ticket
-    function verifyTicket() {
-      const ticketInput = document.getElementById('ticketInput').value.trim();
-      
-      if (!ticketInput) {
-        showToast('Please enter a ticket ID', 'warning');
+    async function updateBusLocation(latitude, longitude) {
+      if (!busId) return;
+      try {
+        await firebase.database().ref(`public_transport/vehicles/${busId}`).update({
+          gps: `${latitude}, ${longitude}`,
+          lastLocationUpdate: Date.now()
+        });
+      } catch (error) {
+        console.error('Error updating location:', error);
+        showToast('Error updating location.', 'danger');
+      }
+    }
+
+    async function getAddressFromCoords(lat, lng) {
+      try {
+        const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+        const data = await response.json();
+        dom.locationAddress.textContent = data.locality || data.principalSubdivision || 'Unknown location';
+      } catch (error) {
+        console.error('Error fetching address:', error);
+        dom.locationAddress.textContent = 'Unable to fetch address';
+      }
+    }
+
+    // Ticket Verification
+    async function verifyTicket() {
+      const ticketId = dom.ticketInput.value.trim().toUpperCase();
+      if (!ticketId) {
+        showToast('Please enter a ticket ID.', 'warning');
         return;
       }
-      
-      // Show loading state
-      const ticketResult = document.getElementById('ticketResult');
-      ticketResult.className = 'ticket-item p-3 rounded mb-3';
-      ticketResult.innerHTML = `
+      dom.ticketResult.className = 'ticket-item p-3 rounded mb-3';
+      dom.ticketResult.innerHTML = `
         <div class="text-center">
-          <div class="spinner-border text-primary mb-2"></div>
+          <div class="spinner-border text-primary mb-2" role="status">
+            <span class="visually-hidden">Verifying ticket...</span>
+          </div>
           <p>Verifying ticket...</p>
         </div>
       `;
-      ticketResult.classList.remove('d-none');
-      
-      // Query database for ticket verification
-      db.ref("tickets/" + ticketInput).once('value')
-        .then(snapshot => {
-          const ticketData = snapshot.val();
-          
-          if (ticketData) {
-            // Ticket found in database
-            const isValid = ticketData.status === 'active' && 
-                           ticketData.validUntil > Date.now() &&
-                           ticketData.busId === busId;
-            
-            displayTicketResult({
-              ...ticketData,
-              id: ticketInput,
-              isValid: isValid
-            });
-            addToRecentTickets({
-              ...ticketData,
-              id: ticketInput,
-              isValid: isValid
-            });
-          } else {
-            // Ticket not found in database
-            displayTicketResult({
-              id: ticketInput,
-              isValid: false,
-              passengerName: 'Not Found',
-              from: 'N/A',
-              to: 'N/A',
-              fare: 'N/A',
-              validUntil: 'N/A'
-            });
-            addToRecentTickets({
-              id: ticketInput,
-              isValid: false,
-              timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-            });
+      dom.ticketResult.classList.remove('d-none');
+
+      try {
+        const usersSnapshot = await firebase.database().ref('users').once('value');
+        let ticketData = null;
+        let passengerName = 'Unknown';
+        let userId = null;
+
+        usersSnapshot.forEach(userSnap => {
+          const tickets = userSnap.val().tickets || [];
+          const ticket = tickets.find(t => t.id === ticketId);
+          if (ticket) {
+            ticketData = ticket;
+            passengerName = userSnap.val().name || 'Unknown';
+            userId = userSnap.key;
           }
-          
-          // Clear input
-          document.getElementById('ticketInput').value = '';
-        })
-        .catch(error => {
-          console.error('Error verifying ticket:', error);
-          showToast('Error verifying ticket', 'danger');
-          document.getElementById('ticketInput').value = '';
         });
+
+        if (!ticketData) {
+          displayTicketResult({ id: ticketId, isValid: false });
+          addToRecentTickets({ id: ticketId, isValid: false });
+          showToast('Ticket not found.', 'danger');
+          return;
+        }
+
+        const isValid = ticketData.busId === busId &&
+                        ticketData.status === 'active' &&
+                        ticketData.validUntil > Date.now();
+
+        const result = {
+          id: ticketId,
+          passengerName,
+          from: ticketData.fromStop,
+          to: ticketData.toStop,
+          fare: `₹${ticketData.fare.toFixed(2)}`,
+          validUntil: new Date(ticketData.validUntil).toLocaleString(),
+          isValid,
+          passengers: ticketData.passengers || 1
+        };
+
+        displayTicketResult(result);
+        addToRecentTickets(result);
+
+        if (isValid && userId) {
+          const tickets = (await firebase.database().ref(`users/${userId}/tickets`).once('value')).val() || [];
+          const updatedTickets = tickets.map(t => t.id === ticketId ? { ...t, status: 'used' } : t);
+          await firebase.database().ref(`users/${userId}/tickets`).set(updatedTickets);
+        }
+
+        showToast(isValid ? 'Ticket verified successfully.' : 'Invalid or expired ticket.', isValid ? 'success' : 'danger');
+        dom.ticketInput.value = '';
+      } catch (error) {
+        console.error('Error verifying ticket:', error);
+        showToast('Error verifying ticket.', 'danger');
+        displayTicketResult({ id: ticketId, isValid: false });
+        addToRecentTickets({ id: ticketId, isValid: false });
+      }
     }
 
-    // Display ticket verification result
     function displayTicketResult(ticketData) {
-      const ticketResult = document.getElementById('ticketResult');
       const statusClass = ticketData.isValid ? 'ticket-valid' : 'ticket-invalid';
       const statusIcon = ticketData.isValid ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger';
       const statusText = ticketData.isValid ? 'VALID TICKET' : 'INVALID TICKET';
-      
-      ticketResult.className = `ticket-item p-3 rounded mb-3 ${statusClass}`;
-      ticketResult.innerHTML = `
+      dom.ticketResult.className = `ticket-item p-3 rounded mb-3 ${statusClass}`;
+      dom.ticketResult.innerHTML = `
         <div class="d-flex justify-content-between align-items-start mb-2">
           <h5 class="mb-0">${statusText}</h5>
           <i class="bi ${statusIcon} fs-4"></i>
@@ -701,7 +693,7 @@
           <div class="row">
             <div class="col-6">
               <small class="text-muted d-block">Passenger</small>
-              <strong>${ticketData.passengerName || 'Unknown'}</strong>
+              <strong>${ticketData.passengerName}</strong>
             </div>
             <div class="col-6">
               <small class="text-muted d-block">Ticket ID</small>
@@ -711,16 +703,20 @@
           <div class="row mt-2">
             <div class="col-6">
               <small class="text-muted d-block">Route</small>
-              <strong>${ticketData.from || 'N/A'} → ${ticketData.to || 'N/A'}</strong>
+              <strong>${ticketData.from} → ${ticketData.to}</strong>
             </div>
             <div class="col-6">
               <small class="text-muted d-block">Fare</small>
-              <strong>${ticketData.fare || 'N/A'}</strong>
+              <strong>${ticketData.fare}</strong>
             </div>
           </div>
           <div class="mt-2">
             <small class="text-muted d-block">Valid Until</small>
-            <strong>${ticketData.validUntil ? new Date(ticketData.validUntil).toLocaleTimeString() : 'N/A'}</strong>
+            <strong>${ticketData.validUntil}</strong>
+          </div>
+          <div class="mt-2">
+            <small class="text-muted d-block">Passengers</small>
+            <strong>${ticketData.passengers}</strong>
           </div>
         ` : `
           <p class="mb-0">This ticket is not valid or has expired.</p>
@@ -729,27 +725,18 @@
       `;
     }
 
-    // Add to recent tickets list
     function addToRecentTickets(ticketData) {
       recentTicketChecks.unshift({
         ...ticketData,
-        timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
-      
-      // Keep only last 5 tickets
-      if (recentTicketChecks.length > 5) {
-        recentTicketChecks = recentTicketChecks.slice(0, 5);
-      }
-      
+      if (recentTicketChecks.length > 5) recentTicketChecks = recentTicketChecks.slice(0, 5);
       updateRecentTicketsUI();
     }
 
-    // Update recent tickets UI
     function updateRecentTicketsUI() {
-      const container = document.getElementById('recentTickets');
-      
       if (recentTicketChecks.length === 0) {
-        container.innerHTML = `
+        dom.recentTickets.innerHTML = `
           <div class="text-center py-3 text-muted">
             <i class="bi bi-ticket-perforated display-6 mb-2"></i>
             <p>No recent ticket checks</p>
@@ -757,7 +744,6 @@
         `;
         return;
       }
-      
       let html = '';
       recentTicketChecks.forEach(ticket => {
         const statusIcon = ticket.isValid ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger';
@@ -777,147 +763,92 @@
           </div>
         `;
       });
-      
-      container.innerHTML = html;
+      dom.recentTickets.innerHTML = html;
     }
 
-    // Load notifications
+    // Notifications
     function loadNotifications() {
       if (!busId) return;
-      
-      db.ref("public_transport/vehicles/" + busId + "/notifications")
-        .on("value", snapshot => {
-          const notifList = document.getElementById("notificationsList");
-          const notifCount = document.getElementById("notificationCount");
-          
-          // Clear existing notifications
-          notifList.innerHTML = '';
-          
-          let count = 0;
-          const notifications = [];
-          
-          snapshot.forEach(child => {
-            const key = child.key;
-            const notif = child.val();
-            notifications.push({ key, notif });
-            count++;
-          });
-          
-          // Sort by timestamp (newest first)
-          notifications.sort((a, b) => b.notif.timestamp - a.notif.timestamp);
-          
-          // Display notifications
-          if (notifications.length === 0) {
-            notifList.innerHTML = `
-              <div class="text-center py-4 text-muted">
-                <i class="bi bi-bell display-4 mb-3"></i>
-                <p>No notifications</p>
-                <small>Notifications from passengers will appear here</small>
+      firebase.database().ref(`public_transport/vehicles/${busId}/notifications`).on('value', snapshot => {
+        dom.notificationsList.innerHTML = '';
+        let count = 0;
+        const notifications = [];
+        snapshot.forEach(child => {
+          const key = child.key;
+          const notif = child.val();
+          notifications.push({ key, notif });
+          count++;
+        });
+        notifications.sort((a, b) => b.notif.timestamp - a.notif.timestamp);
+        if (notifications.length === 0) {
+          dom.notificationsList.innerHTML = `
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-bell display-4 mb-3"></i>
+              <p>No notifications</p>
+              <small>Notifications from passengers will appear here</small>
+            </div>
+          `;
+        } else {
+          notifications.forEach(({ key, notif }) => {
+            const notifElement = document.createElement('div');
+            notifElement.className = 'notification-item p-3 mb-2 rounded';
+            let iconClass = 'bi-info-circle text-primary';
+            if (notif.type === 'lost_bag') iconClass = 'bi-bag-x text-danger';
+            else if (notif.type === 'safety_alert') iconClass = 'bi-shield-exclamation text-warning';
+            notifElement.innerHTML = `
+              <div class="d-flex">
+                <div class="flex-shrink-0">
+                  <i class="bi ${iconClass} fs-5"></i>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                  <h6 class="mb-1">${notif.type ? notif.type.replace('_', ' ').toUpperCase() : 'Notification'}</h6>
+                  <p class="mb-1 small">${notif.description || 'New notification'}</p>
+                  <small class="text-muted">${formatTime(notif.timestamp)}</small>
+                </div>
               </div>
             `;
-          } else {
-            notifications.forEach(({ key, notif }) => {
-              const notifElement = document.createElement('div');
-              notifElement.className = 'notification-item p-3 mb-2 rounded';
-              
-              let iconClass = 'bi-info-circle text-primary';
-              if (notif.type === 'lost_bag') {
-                iconClass = 'bi-bag-x text-danger';
-              } else if (notif.type === 'safety_alert') {
-                iconClass = 'bi-shield-exclamation text-warning';
-              }
-              
-              notifElement.innerHTML = `
-                <div class="d-flex">
-                  <div class="flex-shrink-0">
-                    <i class="bi ${iconClass} fs-5"></i>
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-1">${notif.type ? notif.type.replace('_', ' ').toUpperCase() : 'Notification'}</h6>
-                    <p class="mb-1 small">${notif.description || 'New notification'}</p>
-                    <small class="text-muted">${formatTime(notif.timestamp)}</small>
-                  </div>
-                </div>
-              `;
-              
-              notifList.appendChild(notifElement);
-              
-              // Play sound only for new notifications
-              if (!lastNotifKeys.has(key)) {
-                document.getElementById("notifSound").play();
-                showToast('New notification received', 'info');
-              }
-              lastNotifKeys.add(key);
-            });
-          }
-          
-          // Update notification count
-          notifCount.textContent = count;
-        });
-    }
-
-    // Format timestamp to relative time
-    function formatTime(timestamp) {
-      if (!timestamp) return 'Just now';
-      
-      const now = Date.now();
-      const diff = now - timestamp;
-      
-      if (diff < 60000) return 'Just now';
-      if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
-      if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
-      return `${Math.floor(diff / 86400000)} days ago`;
-    }
-
-    // Logout conductor
-    function logoutConductor() {
-      if (locationWatchId) {
-        navigator.geolocation.clearWatch(locationWatchId);
-      }
-      
-      auth.signOut().then(() => {
-        showToast('Logged out successfully', 'info');
-        setTimeout(() => {
-          alert('Redirecting to login page...');
-          // In real app: window.location.reload();
-        }, 1000);
+            dom.notificationsList.appendChild(notifElement);
+            if (!lastNotifKeys.has(key)) {
+              document.getElementById('notifSound').play().catch(() => {});
+              showToast('New notification received.', 'info');
+            }
+            lastNotifKeys.add(key);
+          });
+        }
+        dom.notificationCount.textContent = count;
       });
     }
 
-    // Show toast notification
+    // Utilities
     function showToast(message, type = 'info') {
       const toastContainer = document.querySelector('.toast-container');
-      
       const toast = document.createElement('div');
       toast.className = `toast align-items-center text-bg-${type} border-0`;
       toast.setAttribute('role', 'alert');
-      
       toast.innerHTML = `
         <div class="d-flex">
           <div class="toast-body d-flex align-items-center">
             <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : type === 'danger' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill'} me-2"></i>
             ${message}
           </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
       `;
-      
       toastContainer.appendChild(toast);
-      
       const bsToast = new bootstrap.Toast(toast);
       bsToast.show();
-      
-      toast.addEventListener('hidden.bs.toast', () => {
-        toastContainer.removeChild(toast);
-      });
+      toast.addEventListener('hidden.bs.toast', () => toastContainer.removeChild(toast));
     }
 
-    // Allow Enter key to verify ticket
-    document.getElementById('ticketInput').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        verifyTicket();
-      }
-    });
+    function formatTime(timestamp) {
+      if (!timestamp) return 'Just now';
+      const now = Date.now();
+      const diff = now - timestamp;
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+      return `${Math.floor(diff / 86400000)} days ago`;
+    }
   </script>
 </body>
-  </html>
+</html>
