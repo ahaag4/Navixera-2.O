@@ -2295,7 +2295,7 @@
         setTimeout(() => {
           hideLoader();
           showToast('Payment successful! Ticket purchased.', 'success');
-          const newPoints = (userData.points || 0) - pointsToUse + 20; // +20 for purchase
+          const newPoints = (userData.points || 0) - pointsToUse + 5; // +5 for purchase
           const history = userData.history || [];
           const stops = vehiclesData[busId].stops || [];
           const fromStop = stops[fromIndex]?.name || `Stop ${fromIndex + 1}`;
@@ -2412,7 +2412,7 @@
           });
           dom.chatInput.value = '';
           // Award points
-          const newPoints = (userData.points || 0) + 5;
+          const newPoints = (userData.points || 0) + 0.5;
           const history = userData.history || [];
           history.push({
             type: 'Points',
