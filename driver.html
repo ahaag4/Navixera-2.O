@@ -9,6 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
   <style>
     :root {
       --primary-color: #2563eb;
@@ -98,6 +99,46 @@
       border-bottom: 3px solid var(--primary-color);
       font-weight: 600;
     }
+    
+    /* QR Scanner Styles */
+    .qr-scanner-container {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    #qr-reader {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .scanner-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .qr-tab-content {
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    .qr-placeholder {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-secondary);
+    }
+    
+    .qr-placeholder i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -174,7 +215,7 @@
           <div class="row align-items-center">
             <div class="col-md-8">
               <h4 class="mb-2 text-white"><i class="bi bi-ticket-perforated me-2"></i>Ticket Verification</h4>
-              <p class="mb-0 text-white-50">Enter passenger ticket ID to verify</p>
+              <p class="mb-0 text-white-50">Enter passenger ticket ID or scan QR code to verify</p>
             </div>
             <div class="col-md-4 text-md-end">
               <button class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#ticketModal">
@@ -298,29 +339,69 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title"><i class="bi bi-ticket-perforated me-2"></i>Verify Ticket</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopQRScanner()"></button>
         </div>
         <div class="modal-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="ticket-input mb-3">
-                <h6 class="mb-3">Enter Ticket ID</h6>
-                <form id="ticketForm" onsubmit="verifyTicketById(event)">
-                  <div class="input-group mb-3">
-                    <input type="text" class="form-control" id="ticketIdInput" placeholder="Enter Ticket ID (e.g., TKT-123456)" required>
-                    <button class="btn btn-primary" type="submit">
-                      <i class="bi bi-search me-2"></i>Verify Ticket
-                    </button>
+          <ul class="nav nav-tabs mb-3" id="ticketTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab">
+                <i class="bi bi-keyboard me-1"></i>Manual Entry
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="scan-tab" data-bs-toggle="tab" data-bs-target="#scan" type="button" role="tab" onclick="initQRScanner()">
+                <i class="bi bi-qr-code-scan me-1"></i>Scan QR Code
+              </button>
+            </li>
+          </ul>
+          
+          <div class="tab-content" id="ticketTabsContent">
+            <!-- Manual Entry Tab -->
+            <div class="tab-pane fade show active" id="manual" role="tabpanel">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="ticket-input mb-3">
+                    <h6 class="mb-3">Enter Ticket ID</h6>
+                    <form id="ticketForm" onsubmit="verifyTicketById(event)">
+                      <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="ticketIdInput" placeholder="Enter Ticket ID (e.g., TKT-123456)" required>
+                        <button class="btn btn-primary" type="submit">
+                          <i class="bi bi-search me-2"></i>Verify Ticket
+                        </button>
+                      </div>
+                    </form>
+                    <small class="text-muted">Enter the ticket ID provided by the passenger to verify their ticket.</small>
                   </div>
-                </form>
-                <small class="text-muted">Enter the ticket ID provided by the passenger to verify their ticket.</small>
+                </div>
+                <div class="col-md-6">
+                  <div id="ticketResult">
+                    <div class="text-center py-4 text-muted">
+                      <i class="bi bi-ticket-perforated display-4 mb-3"></i>
+                      <p>Enter a Ticket ID to verify</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="col-md-6">
-              <div id="ticketResult">
-                <div class="text-center py-4 text-muted">
-                  <i class="bi bi-ticket-perforated display-4 mb-3"></i>
-                  <p>Enter a Ticket ID to verify</p>
+            
+            <!-- QR Scanner Tab -->
+            <div class="tab-pane fade qr-tab-content" id="scan" role="tabpanel">
+              <div id="qr-scanner-container" class="qr-scanner-container">
+                <div id="qr-reader" class="mb-3"></div>
+                <div class="scanner-controls">
+                  <button class="btn btn-primary" id="start-scanner" onclick="startQRScanner()">
+                    <i class="bi bi-camera-video me-1"></i>Start Scanner
+                  </button>
+                  <button class="btn btn-secondary" id="stop-scanner" onclick="stopQRScanner()" disabled>
+                    <i class="bi bi-stop-circle me-1"></i>Stop Scanner
+                  </button>
+                </div>
+              </div>
+              <div id="qr-result" class="mt-3">
+                <div class="qr-placeholder">
+                  <i class="bi bi-qr-code"></i>
+                  <p>Scan a ticket QR code to verify</p>
+                  <small class="text-muted">QR code scanning will start automatically when you open this tab</small>
                 </div>
               </div>
             </div>
@@ -361,6 +442,8 @@
     let locationUpdateCount = 0;
     let ticketsChecked = 0;
     let totalRevenue = 0;
+    let html5QrCode = null;
+    let isScannerActive = false;
 
     // Initialize the application
     document.addEventListener('DOMContentLoaded', function() {
@@ -369,6 +452,9 @@
       
       // Auto-login and fetch conductor data
       initializeConductor();
+      
+      // Initialize QR scanner
+      initQRScanner();
     });
 
     // Update current time
@@ -593,6 +679,11 @@
         });
     }
 
+    // Get address from coordinates (placeholder function)
+    function getAddressFromCoords(latitude, longitude) {
+      // This is a placeholder - in a real app, you would use a geocoding service
+      document.getElementById('locationAddress').textContent = `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`;
+    }
 
     // Refresh location manually
     function refreshLocation() {
@@ -802,6 +893,130 @@
       }
     }
 
+    // Initialize QR Scanner
+    function initQRScanner() {
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("qr-reader");
+      }
+    }
+
+    // Start QR Scanner
+    function startQRScanner() {
+      if (!html5QrCode) {
+        initQRScanner();
+      }
+      
+      if (isScannerActive) {
+        showToast('QR Scanner is already active', 'info');
+        return;
+      }
+      
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+          const cameraId = devices[0].id;
+          
+          html5QrCode.start(
+            cameraId,
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 }
+            },
+            onQRScanSuccess,
+            onQRScanFailure
+          ).then(() => {
+            isScannerActive = true;
+            document.getElementById('start-scanner').disabled = true;
+            document.getElementById('stop-scanner').disabled = false;
+            document.getElementById('qr-result').innerHTML = `
+              <div class="alert alert-info">
+                <i class="bi bi-camera-video me-2"></i>Scanner active - point camera at QR code
+              </div>
+            `;
+            showToast('QR Scanner started', 'success');
+          }).catch(err => {
+            console.error('Error starting QR scanner:', err);
+            showToast('Failed to start QR scanner', 'danger');
+          });
+        } else {
+          showToast('No camera found on this device', 'danger');
+        }
+      }).catch(err => {
+        console.error('Error getting cameras:', err);
+        showToast('Error accessing camera', 'danger');
+      });
+    }
+
+    // Stop QR Scanner
+    function stopQRScanner() {
+      if (html5QrCode && isScannerActive) {
+        html5QrCode.stop().then(() => {
+          isScannerActive = false;
+          document.getElementById('start-scanner').disabled = false;
+          document.getElementById('stop-scanner').disabled = true;
+          document.getElementById('qr-result').innerHTML = `
+            <div class="qr-placeholder">
+              <i class="bi bi-qr-code"></i>
+              <p>Scan a ticket QR code to verify</p>
+              <small class="text-muted">Click "Start Scanner" to begin scanning</small>
+            </div>
+          `;
+          showToast('QR Scanner stopped', 'info');
+        }).catch(err => {
+          console.error('Error stopping QR scanner:', err);
+        });
+      }
+    }
+
+    // Handle QR scan success
+    function onQRScanSuccess(decodedText, decodedResult) {
+      // Stop scanner after successful scan
+      stopQRScanner();
+      
+      // Show scanning result
+      document.getElementById('qr-result').innerHTML = `
+        <div class="alert alert-success">
+          <h6><i class="bi bi-check-circle me-2"></i>QR Code Scanned Successfully</h6>
+          <p class="mb-1"><strong>Ticket ID:</strong> ${decodedText}</p>
+          <small>Verifying ticket...</small>
+        </div>
+      `;
+      
+      // Verify the scanned ticket
+      db.ref('tickets/' + decodedText).once('value')
+        .then(snapshot => {
+          const ticketData = snapshot.val();
+          if (ticketData) {
+            document.getElementById('qr-result').innerHTML = '';
+            verifyTicket(ticketData);
+          } else {
+            document.getElementById('qr-result').innerHTML = `
+              <div class="alert alert-danger">
+                <h6><i class="bi bi-x-circle me-2"></i>Ticket Not Found</h6>
+                <p class="mb-1"><strong>Ticket ID:</strong> ${decodedText}</p>
+                <p class="mb-0">This ticket ID was not found in the database.</p>
+              </div>
+            `;
+            showToast('Scanned ticket not found', 'danger');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching ticket:', error);
+          document.getElementById('qr-result').innerHTML = `
+            <div class="alert alert-danger">
+              <h6><i class="bi bi-exclamation-triangle me-2"></i>Error Verifying Ticket</h6>
+              <p class="mb-0">There was an error verifying the scanned ticket.</p>
+            </div>
+          `;
+          showToast('Error verifying scanned ticket', 'danger');
+        });
+    }
+
+    // Handle QR scan failure
+    function onQRScanFailure(error) {
+      // This is expected to be called often for non-QR codes
+      // We don't need to show errors for every failed scan attempt
+    }
+
     // Update statistics
     function updateStats() {
       document.getElementById('ticketsChecked').textContent = ticketsChecked;
@@ -829,6 +1044,10 @@
     function logoutConductor() {
       if (locationWatchId) {
         navigator.geolocation.clearWatch(locationWatchId);
+      }
+      
+      if (isScannerActive) {
+        stopQRScanner();
       }
       
       showToast('Logged out successfully', 'info');
@@ -866,4 +1085,4 @@
     }
   </script>
 </body>
-  </html>
+              </html>
