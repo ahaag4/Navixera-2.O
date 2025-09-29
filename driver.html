@@ -355,17 +355,30 @@
     let recentTicketChecks = [];
     let lastNotifKeys = new Set();
 
+    // Firebase Configuration (Replace with your actual Firebase config)
+    const firebaseConfig = {
+      apiKey: "your-api-key",
+      authDomain: "your-project.firebaseapp.com",
+      databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+      projectId: "your-project-id",
+      storageBucket: "your-project.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "your-app-id"
+    };
+
     // Initialize Firebase
-    fetch('/firebase-config')
-      .then(response => response.json())
-      .then(config => {
-        firebase.initializeApp(config);
-        initApp();
-      })
-      .catch(err => {
-        console.error('Failed to load Firebase config:', err);
-        showToast('Failed to initialize application.', 'danger');
-      });
+    try {
+      firebase.initializeApp(firebaseConfig);
+      initApp();
+    } catch (err) {
+      console.error('Failed to initialize Firebase:', err);
+      showToast('Failed to initialize application.', 'danger');
+      // Fallback: Remove flash screen after error
+      setTimeout(() => {
+        dom.flashScreen.style.opacity = '0';
+        setTimeout(() => dom.flashScreen.remove(), 300);
+      }, 2000);
+    }
 
     // Initialize Application
     function initApp() {
@@ -386,7 +399,10 @@
           initializeConductor(user);
         } else {
           showToast('Please log in to continue.', 'warning');
-          setTimeout(() => window.location.href = '/login.html', 2000);
+          setTimeout(() => {
+            // Redirect to login page (replace with your actual login URL)
+            window.location.href = '/login.html';
+          }, 2000);
         }
       });
 
@@ -596,6 +612,7 @@
     async function getAddressFromCoords(lat, lng) {
       try {
         const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+        if (!response.ok) throw new Error('Address API error');
         const data = await response.json();
         dom.locationAddress.textContent = data.locality || data.principalSubdivision || 'Unknown location';
       } catch (error) {
@@ -629,11 +646,12 @@
         let userId = null;
 
         usersSnapshot.forEach(userSnap => {
-          const tickets = userSnap.val().tickets || [];
+          const userData = userSnap.val();
+          const tickets = userData.tickets || [];
           const ticket = tickets.find(t => t.id === ticketId);
           if (ticket) {
             ticketData = ticket;
-            passengerName = userSnap.val().name || 'Unknown';
+            passengerName = userData.name || 'Unknown';
             userId = userSnap.key;
           }
         });
@@ -654,7 +672,7 @@
           passengerName,
           from: ticketData.fromStop,
           to: ticketData.toStop,
-          fare: `₹${ticketData.fare.toFixed(2)}`,
+          fare: `₹${ticketData.fare ? ticketData.fare.toFixed(2) : '0.00'}`,
           validUntil: new Date(ticketData.validUntil).toLocaleString(),
           isValid,
           passengers: ticketData.passengers || 1
@@ -664,9 +682,12 @@
         addToRecentTickets(result);
 
         if (isValid && userId) {
-          const tickets = (await firebase.database().ref(`users/${userId}/tickets`).once('value')).val() || [];
+          const userRef = firebase.database().ref(`users/${userId}`);
+          const userSnapshot = await userRef.once('value');
+          const userData = userSnapshot.val();
+          const tickets = userData.tickets || [];
           const updatedTickets = tickets.map(t => t.id === ticketId ? { ...t, status: 'used' } : t);
-          await firebase.database().ref(`users/${userId}/tickets`).set(updatedTickets);
+          await userRef.update({ tickets: updatedTickets });
         }
 
         showToast(isValid ? 'Ticket verified successfully.' : 'Invalid or expired ticket.', isValid ? 'success' : 'danger');
@@ -851,4 +872,4 @@
     }
   </script>
 </body>
-</html>
+  </html>
