@@ -9,7 +9,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     :root {
       --primary-color: #2563eb;
@@ -78,7 +77,7 @@
       border-radius: 12px;
     }
     
-    .qr-scanner {
+    .ticket-input {
       background: white;
       border-radius: 8px;
       padding: 20px;
@@ -95,9 +94,9 @@
       100% { opacity: 1; }
     }
     
-    .no-bus-assigned {
-      background: linear-gradient(135deg, #f59e0b, #fbbf24);
-      color: white;
+    .nav-tabs .nav-link.active {
+      border-bottom: 3px solid var(--primary-color);
+      font-weight: 600;
     }
   </style>
 </head>
@@ -128,27 +127,8 @@
 
   <!-- Main Content -->
   <div class="container my-4">
-    <!-- No Bus Assigned Warning -->
-    <div class="row mb-4" id="noBusWarning" style="display: none;">
-      <div class="col-12">
-        <div class="card no-bus-assigned p-4">
-          <div class="row align-items-center">
-            <div class="col-md-8">
-              <h4 class="mb-2 text-white"><i class="bi bi-exclamation-triangle me-2"></i>No Bus Assigned</h4>
-              <p class="mb-0 text-white-50">Please contact administrator to assign a bus to your account</p>
-            </div>
-            <div class="col-md-4 text-md-end">
-              <button class="btn btn-light btn-lg" onclick="refreshAssignment()">
-                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Bus Information -->
-    <div class="row mb-4" id="busInfoSection">
+    <div class="row mb-4">
       <div class="col-12">
         <div class="card p-4">
           <div class="row align-items-center">
@@ -166,7 +146,7 @@
     </div>
 
     <!-- Location Control -->
-    <div class="row mb-4" id="locationControlSection">
+    <div class="row mb-4">
       <div class="col-12">
         <div class="card location-control p-4">
           <div class="row align-items-center">
@@ -188,17 +168,17 @@
     </div>
 
     <!-- Tickets Section -->
-    <div class="row mb-4" id="ticketSection">
+    <div class="row mb-4">
       <div class="col-12">
         <div class="card ticket-section p-4">
           <div class="row align-items-center">
             <div class="col-md-8">
               <h4 class="mb-2 text-white"><i class="bi bi-ticket-perforated me-2"></i>Ticket Verification</h4>
-              <p class="mb-0 text-white-50">Scan passenger QR codes to verify tickets</p>
+              <p class="mb-0 text-white-50">Enter passenger ticket ID to verify</p>
             </div>
             <div class="col-md-4 text-md-end">
               <button class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#ticketModal">
-                <i class="bi bi-qr-code-scan me-2"></i>Check Ticket
+                <i class="bi bi-ticket-perforated me-2"></i>Check Ticket
               </button>
             </div>
           </div>
@@ -210,7 +190,7 @@
       <!-- Left Column - Status & Location -->
       <div class="col-lg-8">
         <!-- Status Controls -->
-        <div class="card p-4 mb-4" id="statusControlSection">
+        <div class="card p-4 mb-4">
           <h5 class="mb-3"><i class="bi bi-speedometer2 me-2 text-primary"></i>Update Bus Status</h5>
           <div class="row g-3">
             <div class="col-md-6">
@@ -237,7 +217,7 @@
         </div>
 
         <!-- Location Information -->
-        <div class="card p-4" id="locationInfoSection">
+        <div class="card p-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5><i class="bi bi-geo me-2 text-primary"></i>Live Location Data</h5>
             <span class="badge bg-success fs-6" id="locationStatusBadge">Ready</span>
@@ -274,7 +254,7 @@
       <!-- Right Column - Notifications & Stats -->
       <div class="col-lg-4">
         <!-- Notifications -->
-        <div class="card p-4 mb-4" id="notificationsSection">
+        <div class="card p-4 mb-4">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5><i class="bi bi-bell me-2 text-primary"></i>Notifications</h5>
             <span class="badge bg-primary fs-6" id="notificationCount">0</span>
@@ -289,7 +269,7 @@
         </div>
 
         <!-- Today's Stats -->
-        <div class="card p-4" id="statsSection">
+        <div class="card p-4">
           <h5 class="mb-3"><i class="bi bi-graph-up me-2 text-primary"></i>Today's Stats</h5>
           <div class="row text-center">
             <div class="col-6 mb-3">
@@ -317,25 +297,30 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-qr-code me-2"></i>Verify Ticket</h5>
+          <h5 class="modal-title"><i class="bi bi-ticket-perforated me-2"></i>Verify Ticket</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div class="row">
             <div class="col-md-6">
-              <div class="qr-scanner mb-3">
-                <i class="bi bi-camera display-1 text-muted mb-3"></i>
-                <p class="mb-3">Point camera at passenger's QR code</p>
-                <button class="btn btn-primary" onclick="simulateQRScan()">
-                  <i class="bi bi-camera me-2"></i>Simulate Scan
-                </button>
+              <div class="ticket-input mb-3">
+                <h6 class="mb-3">Enter Ticket ID</h6>
+                <form id="ticketForm" onsubmit="verifyTicketById(event)">
+                  <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="ticketIdInput" placeholder="Enter Ticket ID (e.g., TKT-123456)" required>
+                    <button class="btn btn-primary" type="submit">
+                      <i class="bi bi-search me-2"></i>Verify Ticket
+                    </button>
+                  </div>
+                </form>
+                <small class="text-muted">Enter the ticket ID provided by the passenger to verify their ticket.</small>
               </div>
             </div>
             <div class="col-md-6">
               <div id="ticketResult">
                 <div class="text-center py-4 text-muted">
-                  <i class="bi bi-qr-code display-4 mb-3"></i>
-                  <p>Scan a QR code to verify ticket</p>
+                  <i class="bi bi-ticket-perforated display-4 mb-3"></i>
+                  <p>Enter a Ticket ID to verify</p>
                 </div>
               </div>
             </div>
@@ -376,7 +361,6 @@
     let locationUpdateCount = 0;
     let ticketsChecked = 0;
     let totalRevenue = 0;
-    let conductorId = null;
 
     // Initialize the application
     document.addEventListener('DOMContentLoaded', function() {
@@ -396,24 +380,32 @@
 
     // Initialize conductor session
     function initializeConductor() {
-      // Get conductor ID from URL parameters or localStorage
       const urlParams = new URLSearchParams(window.location.search);
-      conductorId = urlParams.get('conductorId') || localStorage.getItem('conductorId') || 'CON-001';
+      const conductorEmail = urlParams.get('email') || localStorage.getItem('conductorEmail');
       
-      localStorage.setItem('conductorId', conductorId);
-      fetchConductorData();
+      if (conductorEmail) {
+        busId = conductorEmail.split('@')[0].toUpperCase();
+        fetchConductorData();
+      } else {
+        busId = "C-306";
+        conductorData = {
+          name: "Rajesh Kumar",
+          route: "Central Station ↔ North Park"
+        };
+        updateUIWithConductorData();
+        showToast('Demo mode activated', 'info');
+      }
     }
 
     // Fetch conductor data from Firebase
     function fetchConductorData() {
-      db.ref('conductors/' + conductorId).once('value')
+      db.ref('conductors/' + busId).once('value')
         .then(snapshot => {
           conductorData = snapshot.val();
           if (conductorData) {
             updateUIWithConductorData();
-            checkBusAssignment();
+            showToast('Conductor data loaded successfully', 'success');
           } else {
-            // Create demo conductor data
             createConductorData();
           }
         })
@@ -423,65 +415,19 @@
         });
     }
 
-    // Check if bus is assigned to conductor
-    function checkBusAssignment() {
-      if (conductorData && conductorData.assignedBus) {
-        busId = conductorData.assignedBus;
-        showBusAssignedUI();
-        loadBusData();
-        loadNotifications();
-      } else {
-        showNoBusAssignedUI();
-      }
-    }
-
-    // Show UI when bus is assigned
-    function showBusAssignedUI() {
-      document.getElementById('noBusWarning').style.display = 'none';
-      document.getElementById('busInfoSection').style.display = 'block';
-      document.getElementById('locationControlSection').style.display = 'block';
-      document.getElementById('ticketSection').style.display = 'block';
-      document.getElementById('statusControlSection').style.display = 'block';
-      document.getElementById('locationInfoSection').style.display = 'block';
-      document.getElementById('notificationsSection').style.display = 'block';
-      document.getElementById('statsSection').style.display = 'block';
-      
-      document.getElementById('conductorName').textContent = conductorData.name;
-      document.getElementById('busTitle').textContent = 'Bus: ' + busId;
-      document.getElementById('routeName').textContent = conductorData.route || 'Route information';
-      
-      showToast('Bus assignment loaded: ' + busId, 'success');
-    }
-
-    // Show UI when no bus is assigned
-    function showNoBusAssignedUI() {
-      document.getElementById('noBusWarning').style.display = 'block';
-      document.getElementById('busInfoSection').style.display = 'none';
-      document.getElementById('locationControlSection').style.display = 'none';
-      document.getElementById('ticketSection').style.display = 'none';
-      document.getElementById('statusControlSection').style.display = 'none';
-      document.getElementById('locationInfoSection').style.display = 'none';
-      document.getElementById('notificationsSection').style.display = 'none';
-      document.getElementById('statsSection').style.display = 'none';
-      
-      document.getElementById('conductorName').textContent = conductorData ? conductorData.name : 'Conductor';
-      showToast('No bus assigned to your account', 'warning');
-    }
-
     // Create conductor data if not exists
     function createConductorData() {
       conductorData = {
-        name: "Conductor " + conductorId,
-        email: conductorId.toLowerCase() + "@transit.com",
-        conductorId: conductorId,
-        createdAt: Date.now(),
-        status: 'active'
+        name: "Conductor " + busId,
+        email: busId.toLowerCase() + "@transit.com",
+        route: "Route " + busId,
+        busId: busId,
+        createdAt: Date.now()
       };
       
-      db.ref('conductors/' + conductorId).set(conductorData)
+      db.ref('conductors/' + busId).set(conductorData)
         .then(() => {
           updateUIWithConductorData();
-          showNoBusAssignedUI();
           showToast('New conductor profile created', 'success');
         })
         .catch(error => {
@@ -493,26 +439,12 @@
     // Update UI with conductor data
     function updateUIWithConductorData() {
       document.getElementById('conductorName').textContent = conductorData.name;
-    }
-
-    // Refresh bus assignment
-    function refreshAssignment() {
-      db.ref('conductors/' + conductorId).once('value')
-        .then(snapshot => {
-          const updatedData = snapshot.val();
-          if (updatedData && updatedData.assignedBus) {
-            busId = updatedData.assignedBus;
-            conductorData = updatedData;
-            showBusAssignedUI();
-            showToast('Bus assignment updated: ' + busId, 'success');
-          } else {
-            showToast('No bus assignment found', 'info');
-          }
-        })
-        .catch(error => {
-          console.error('Error refreshing assignment:', error);
-          showToast('Error refreshing assignment', 'danger');
-        });
+      document.getElementById('busTitle').textContent = 'Bus: ' + busId;
+      document.getElementById('routeName').textContent = conductorData.route;
+      
+      loadBusData();
+      loadNotifications();
+      updateStats();
     }
 
     // Load bus data from Firebase
@@ -528,7 +460,6 @@
             document.getElementById('routeName').textContent = busData.routeName;
           }
         } else {
-          // Create initial bus data
           createBusData();
         }
       });
@@ -538,12 +469,11 @@
     function createBusData() {
       const busData = {
         vehicleType: 'Bus',
-        routeName: conductorData.route || 'Main Route',
+        routeName: conductorData.route,
         status: 'On Time',
         capacity: 50,
         companyName: 'City Transit',
-        lastUpdated: Date.now(),
-        conductorId: conductorId
+        lastUpdated: Date.now()
       };
       
       db.ref("public_transport/vehicles/" + busId).set(busData)
@@ -580,11 +510,6 @@
 
     // Start automatic location tracking
     function startLocationTracking() {
-      if (!busId) {
-        showToast('No bus assigned to track location', 'warning');
-        return;
-      }
-      
       if (!navigator.geolocation) {
         showToast('Geolocation is not supported by your browser', 'danger');
         return;
@@ -595,7 +520,6 @@
         return;
       }
       
-      // Update UI
       document.getElementById('startLocationBtn').disabled = true;
       document.getElementById('stopLocationBtn').disabled = false;
       document.getElementById('locationStatusText').textContent = 'Automatic location tracking active';
@@ -605,23 +529,18 @@
       
       showToast('Starting automatic location tracking...', 'info');
       
-      // Start watching position
       locationWatchId = navigator.geolocation.watchPosition(
         position => {
           const { latitude, longitude } = position.coords;
           locationUpdateCount++;
           
-          // Update UI
           document.getElementById('locationCoordinates').textContent = 
             `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
           document.getElementById('locationStatusBadge').textContent = 'Active';
           document.getElementById('locationStatusBadge').className = 'badge bg-success fs-6';
           document.getElementById('locationUpdateCount').textContent = locationUpdateCount;
           
-          // Get approximate address
           getAddressFromCoords(latitude, longitude);
-          
-          // Update bus location in Firebase
           updateBusLocation(latitude, longitude);
         },
         error => {
@@ -674,7 +593,6 @@
         locationWatchId = null;
       }
       
-      // Update UI
       document.getElementById('startLocationBtn').disabled = false;
       document.getElementById('stopLocationBtn').disabled = true;
       document.getElementById('locationStatusText').textContent = 'Location tracking stopped';
@@ -694,8 +612,7 @@
         gps: `${latitude}, ${longitude}`,
         lastLocationUpdate: Date.now(),
         latitude: latitude,
-        longitude: longitude,
-        conductorId: conductorId
+        longitude: longitude
       };
       
       db.ref("public_transport/vehicles/" + busId).update(locationData)
@@ -723,11 +640,6 @@
 
     // Refresh location manually
     function refreshLocation() {
-      if (!busId) {
-        showToast('No bus assigned to track location', 'warning');
-        return;
-      }
-      
       if (!navigator.geolocation) {
         showToast('Geolocation not available', 'danger');
         return;
@@ -760,15 +672,11 @@
 
     // Update bus status
     function updateStatus(status) {
-      if (!busId) {
-        showToast('No bus assigned to update status', 'warning');
-        return;
-      }
+      if (!busId) return;
       
       db.ref("public_transport/vehicles/" + busId).update({
         status: status,
-        lastUpdated: Date.now(),
-        conductorId: conductorId
+        lastUpdated: Date.now()
       }).then(() => {
         showToast(`Status updated to: ${status}`, 'success');
         updateStatusBadge(status);
@@ -799,7 +707,6 @@
             count++;
           });
           
-          // Sort by timestamp (newest first)
           notifications.sort((a, b) => b.notif.timestamp - a.notif.timestamp);
           
           if (notifications.length === 0) {
@@ -849,38 +756,61 @@
         });
     }
 
-    // Simulate QR code scanning
-    function simulateQRScan() {
-      if (!busId) {
-        showToast('No bus assigned to verify tickets', 'warning');
+    // Handle ticket verification form submission
+    function verifyTicketById(event) {
+      event.preventDefault();
+      const ticketId = document.getElementById('ticketIdInput').value.trim().toUpperCase();
+      
+      if (!ticketId) {
+        showToast('Please enter a Ticket ID', 'danger');
         return;
       }
-      
-      const ticketData = {
-        ticketId: 'TKT-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-        passengerName: 'Passenger ' + Math.floor(Math.random() * 1000),
-        fromStop: 'Central Station',
-        toStop: 'North Park',
-        fare: 25,
-        validUntil: Date.now() + 2 * 60 * 60 * 1000, // 2 hours from now
-        busId: busId,
-        purchaseTime: Date.now() - 30 * 60 * 1000 // 30 minutes ago
-      };
-      
-      verifyTicket(ticketData);
+
+      db.ref('tickets/' + ticketId).once('value')
+        .then(snapshot => {
+          const ticketData = snapshot.val();
+          if (ticketData) {
+            verifyTicket(ticketData);
+          } else {
+            const resultDiv = document.getElementById('ticketResult');
+            resultDiv.innerHTML = `
+              <div class="alert alert-danger">
+                <h5><i class="bi bi-x-circle me-2"></i>Ticket Not Found</h5>
+                <p><strong>Ticket ID:</strong> ${ticketId}</p>
+                <p class="mb-0"><strong>Status:</strong> NOT FOUND</p>
+              </div>
+            `;
+            showToast('Ticket not found in database', 'danger');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching ticket:', error);
+          showToast('Error verifying ticket', 'danger');
+        });
     }
 
     // Verify ticket
     function verifyTicket(ticketData) {
       const resultDiv = document.getElementById('ticketResult');
       const now = Date.now();
-      
+
+      if (!ticketData) {
+        resultDiv.innerHTML = `
+          <div class="alert alert-danger">
+            <h5><i class="bi bi-x-circle me-2"></i>Invalid Ticket</h5>
+            <p class="mb-0"><strong>Status:</strong> INVALID</p>
+          </div>
+        `;
+        showToast('Invalid ticket data', 'danger');
+        return;
+      }
+
       if (ticketData.validUntil < now) {
         resultDiv.innerHTML = `
           <div class="alert alert-danger">
             <h5><i class="bi bi-x-circle me-2"></i>Ticket Expired</h5>
             <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
-            <p><strong>Passenger:</strong> ${ticketData.passengerName}</p>
+            <p><strong>Passenger:</strong> ${ticketData.passengerName || 'Unknown'}</p>
             <p><strong>Route:</strong> ${ticketData.fromStop} → ${ticketData.toStop}</p>
             <p class="mb-0"><strong>Status:</strong> EXPIRED</p>
           </div>
@@ -891,7 +821,7 @@
           <div class="alert alert-warning">
             <h5><i class="bi bi-exclamation-triangle me-2"></i>Wrong Bus</h5>
             <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
-            <p><strong>Passenger:</strong> ${ticketData.passengerName}</p>
+            <p><strong>Passenger:</strong> ${ticketData.passengerName || 'Unknown'}</p>
             <p><strong>Valid for Bus:</strong> ${ticketData.busId}</p>
             <p class="mb-0"><strong>Status:</strong> INVALID FOR THIS BUS</p>
           </div>
@@ -902,7 +832,7 @@
           <div class="alert alert-success">
             <h5><i class="bi bi-check-circle me-2"></i>Ticket Valid</h5>
             <p><strong>Ticket ID:</strong> ${ticketData.ticketId}</p>
-            <p><strong>Passenger:</strong> ${ticketData.passengerName}</p>
+            <p><strong>Passenger:</strong> ${ticketData.passengerName || 'Unknown'}</p>
             <p><strong>Route:</strong> ${ticketData.fromStop} → ${ticketData.toStop}</p>
             <p><strong>Fare:</strong> ₹${ticketData.fare}</p>
             <p class="mb-0"><strong>Status:</strong> ACTIVE</p>
@@ -910,31 +840,10 @@
         `;
         showToast('Ticket verified successfully!', 'success');
         
-        // Update stats
         ticketsChecked++;
-        totalRevenue += ticketData.fare;
+        totalRevenue += ticketData.fare || 0;
         updateStats();
-        
-        // Log ticket verification
-        logTicketVerification(ticketData);
       }
-    }
-
-    // Log ticket verification to Firebase
-    function logTicketVerification(ticketData) {
-      const verificationLog = {
-        ticketId: ticketData.ticketId,
-        passengerName: ticketData.passengerName,
-        conductorId: conductorId,
-        busId: busId,
-        verificationTime: Date.now(),
-        status: 'valid'
-      };
-      
-      db.ref('ticketVerifications/' + ticketData.ticketId).set(verificationLog)
-        .catch(error => {
-          console.error('Error logging ticket verification:', error);
-        });
     }
 
     // Update statistics
@@ -942,8 +851,7 @@
       document.getElementById('ticketsChecked').textContent = ticketsChecked;
       document.getElementById('revenue').textContent = '₹' + totalRevenue;
       
-      // Update route completion (random for demo)
-      const completion = Math.floor(Math.random() * 30) + 70; // 70-100%
+      const completion = 75; // Placeholder; replace with real data if available
       document.getElementById('routeCompletion').textContent = completion + '%';
       document.getElementById('routeProgress').style.width = completion + '%';
     }
@@ -1002,4 +910,4 @@
     }
   </script>
 </body>
-</html>
+  </html>
