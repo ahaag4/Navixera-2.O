@@ -316,6 +316,21 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
   <script>
+             // Firebase Configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCn9YSO4-ksWl6JBqIcEEuLx2EJN8jMj4M",
+        authDomain: "svms-c0232.firebaseapp.com",
+        databaseURL: "https://svms-c0232-default-rtdb.firebaseio.com",
+        projectId: "svms-c0232",
+        storageBucket: "svms-c0232.appspot.com",
+        messagingSenderId: "359201898609",
+        appId: "1:359201898609:web:893ef076207abb06471bd0"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      const auth = firebase.auth();
+      const functions = firebase.functions ? firebase.functions() : null;
+
     // DOM Elements
     const dom = {
       flashScreen: document.querySelector('.flash-screen'),
