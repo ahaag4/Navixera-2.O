@@ -386,14 +386,6 @@
       if (conductorEmail) {
         busId = conductorEmail.split('@')[0].toUpperCase();
         fetchConductorData();
-      } else {
-        busId = "C-306";
-        conductorData = {
-          name: "Rajesh Kumar",
-          route: "Central Station ↔ North Park"
-        };
-        updateUIWithConductorData();
-        showToast('Demo mode activated', 'info');
       }
     }
 
@@ -412,27 +404,6 @@
         .catch(error => {
           console.error('Error fetching conductor data:', error);
           showToast('Error loading conductor data', 'danger');
-        });
-    }
-
-    // Create conductor data if not exists
-    function createConductorData() {
-      conductorData = {
-        name: "Conductor " + busId,
-        email: busId.toLowerCase() + "@transit.com",
-        route: "Route " + busId,
-        busId: busId,
-        createdAt: Date.now()
-      };
-      
-      db.ref('conductors/' + busId).set(conductorData)
-        .then(() => {
-          updateUIWithConductorData();
-          showToast('New conductor profile created', 'success');
-        })
-        .catch(error => {
-          console.error('Error creating conductor data:', error);
-          showToast('Error creating conductor profile', 'danger');
         });
     }
 
@@ -472,7 +443,7 @@
         routeName: conductorData.route,
         status: 'On Time',
         capacity: 50,
-        companyName: 'City Transit',
+        companyName: 'Punjab Gov',
         lastUpdated: Date.now()
       };
       
@@ -622,21 +593,6 @@
         });
     }
 
-    // Simulate getting address from coordinates
-    function getAddressFromCoords(lat, lng) {
-      const addresses = [
-        "Mumbai Central, Maharashtra",
-        "Andheri East, Mumbai",
-        "Bandra Kurla Complex, Mumbai",
-        "Dadar West, Mumbai",
-        "Churchgate, Mumbai"
-      ];
-      
-      const addressIndex = Math.abs(Math.floor(lat * 1000)) % addresses.length;
-      const address = addresses[addressIndex];
-      
-      document.getElementById('locationAddress').textContent = address;
-    }
 
     // Refresh location manually
     function refreshLocation() {
