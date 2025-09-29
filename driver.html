@@ -95,9 +95,9 @@
       100% { opacity: 1; }
     }
     
-    .nav-tabs .nav-link.active {
-      border-bottom: 3px solid var(--primary-color);
-      font-weight: 600;
+    .no-bus-assigned {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: white;
     }
   </style>
 </head>
@@ -128,8 +128,27 @@
 
   <!-- Main Content -->
   <div class="container my-4">
+    <!-- No Bus Assigned Warning -->
+    <div class="row mb-4" id="noBusWarning" style="display: none;">
+      <div class="col-12">
+        <div class="card no-bus-assigned p-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h4 class="mb-2 text-white"><i class="bi bi-exclamation-triangle me-2"></i>No Bus Assigned</h4>
+              <p class="mb-0 text-white-50">Please contact administrator to assign a bus to your account</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+              <button class="btn btn-light btn-lg" onclick="refreshAssignment()">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Bus Information -->
-    <div class="row mb-4">
+    <div class="row mb-4" id="busInfoSection">
       <div class="col-12">
         <div class="card p-4">
           <div class="row align-items-center">
@@ -147,7 +166,7 @@
     </div>
 
     <!-- Location Control -->
-    <div class="row mb-4">
+    <div class="row mb-4" id="locationControlSection">
       <div class="col-12">
         <div class="card location-control p-4">
           <div class="row align-items-center">
@@ -169,7 +188,7 @@
     </div>
 
     <!-- Tickets Section -->
-    <div class="row mb-4">
+    <div class="row mb-4" id="ticketSection">
       <div class="col-12">
         <div class="card ticket-section p-4">
           <div class="row align-items-center">
@@ -191,7 +210,7 @@
       <!-- Left Column - Status & Location -->
       <div class="col-lg-8">
         <!-- Status Controls -->
-        <div class="card p-4 mb-4">
+        <div class="card p-4 mb-4" id="statusControlSection">
           <h5 class="mb-3"><i class="bi bi-speedometer2 me-2 text-primary"></i>Update Bus Status</h5>
           <div class="row g-3">
             <div class="col-md-6">
@@ -218,7 +237,7 @@
         </div>
 
         <!-- Location Information -->
-        <div class="card p-4">
+        <div class="card p-4" id="locationInfoSection">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5><i class="bi bi-geo me-2 text-primary"></i>Live Location Data</h5>
             <span class="badge bg-success fs-6" id="locationStatusBadge">Ready</span>
@@ -255,7 +274,7 @@
       <!-- Right Column - Notifications & Stats -->
       <div class="col-lg-4">
         <!-- Notifications -->
-        <div class="card p-4 mb-4">
+        <div class="card p-4 mb-4" id="notificationsSection">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5><i class="bi bi-bell me-2 text-primary"></i>Notifications</h5>
             <span class="badge bg-primary fs-6" id="notificationCount">0</span>
@@ -270,7 +289,7 @@
         </div>
 
         <!-- Today's Stats -->
-        <div class="card p-4">
+        <div class="card p-4" id="statsSection">
           <h5 class="mb-3"><i class="bi bi-graph-up me-2 text-primary"></i>Today's Stats</h5>
           <div class="row text-center">
             <div class="col-6 mb-3">
@@ -357,6 +376,7 @@
     let locationUpdateCount = 0;
     let ticketsChecked = 0;
     let totalRevenue = 0;
+    let conductorId = null;
 
     // Initialize the application
     document.addEventListener('DOMContentLoaded', function() {
@@ -376,33 +396,22 @@
 
     // Initialize conductor session
     function initializeConductor() {
-      // Get conductor data from URL parameters or localStorage
+      // Get conductor ID from URL parameters or localStorage
       const urlParams = new URLSearchParams(window.location.search);
-      const conductorEmail = urlParams.get('email') || localStorage.getItem('conductorEmail');
+      conductorId = urlParams.get('conductorId') || localStorage.getItem('conductorId') || 'CON-001';
       
-      if (conductorEmail) {
-        busId = conductorEmail.split('@')[0].toUpperCase();
-        fetchConductorData();
-      } else {
-        // Demo mode - use default bus
-        busId = "C-306";
-        conductorData = {
-          name: "Rajesh Kumar",
-          route: "Central Station ↔ North Park"
-        };
-        updateUIWithConductorData();
-        showToast('Demo mode activated', 'info');
-      }
+      localStorage.setItem('conductorId', conductorId);
+      fetchConductorData();
     }
 
     // Fetch conductor data from Firebase
     function fetchConductorData() {
-      db.ref('conductors/' + busId).once('value')
+      db.ref('conductors/' + conductorId).once('value')
         .then(snapshot => {
           conductorData = snapshot.val();
           if (conductorData) {
             updateUIWithConductorData();
-            showToast('Conductor data loaded successfully', 'success');
+            checkBusAssignment();
           } else {
             // Create demo conductor data
             createConductorData();
@@ -414,19 +423,65 @@
         });
     }
 
+    // Check if bus is assigned to conductor
+    function checkBusAssignment() {
+      if (conductorData && conductorData.assignedBus) {
+        busId = conductorData.assignedBus;
+        showBusAssignedUI();
+        loadBusData();
+        loadNotifications();
+      } else {
+        showNoBusAssignedUI();
+      }
+    }
+
+    // Show UI when bus is assigned
+    function showBusAssignedUI() {
+      document.getElementById('noBusWarning').style.display = 'none';
+      document.getElementById('busInfoSection').style.display = 'block';
+      document.getElementById('locationControlSection').style.display = 'block';
+      document.getElementById('ticketSection').style.display = 'block';
+      document.getElementById('statusControlSection').style.display = 'block';
+      document.getElementById('locationInfoSection').style.display = 'block';
+      document.getElementById('notificationsSection').style.display = 'block';
+      document.getElementById('statsSection').style.display = 'block';
+      
+      document.getElementById('conductorName').textContent = conductorData.name;
+      document.getElementById('busTitle').textContent = 'Bus: ' + busId;
+      document.getElementById('routeName').textContent = conductorData.route || 'Route information';
+      
+      showToast('Bus assignment loaded: ' + busId, 'success');
+    }
+
+    // Show UI when no bus is assigned
+    function showNoBusAssignedUI() {
+      document.getElementById('noBusWarning').style.display = 'block';
+      document.getElementById('busInfoSection').style.display = 'none';
+      document.getElementById('locationControlSection').style.display = 'none';
+      document.getElementById('ticketSection').style.display = 'none';
+      document.getElementById('statusControlSection').style.display = 'none';
+      document.getElementById('locationInfoSection').style.display = 'none';
+      document.getElementById('notificationsSection').style.display = 'none';
+      document.getElementById('statsSection').style.display = 'none';
+      
+      document.getElementById('conductorName').textContent = conductorData ? conductorData.name : 'Conductor';
+      showToast('No bus assigned to your account', 'warning');
+    }
+
     // Create conductor data if not exists
     function createConductorData() {
       conductorData = {
-        name: "Conductor " + busId,
-        email: busId.toLowerCase() + "@transit.com",
-        route: "Route " + busId,
-        busId: busId,
-        createdAt: Date.now()
+        name: "Conductor " + conductorId,
+        email: conductorId.toLowerCase() + "@transit.com",
+        conductorId: conductorId,
+        createdAt: Date.now(),
+        status: 'active'
       };
       
-      db.ref('conductors/' + busId).set(conductorData)
+      db.ref('conductors/' + conductorId).set(conductorData)
         .then(() => {
           updateUIWithConductorData();
+          showNoBusAssignedUI();
           showToast('New conductor profile created', 'success');
         })
         .catch(error => {
@@ -438,17 +493,26 @@
     // Update UI with conductor data
     function updateUIWithConductorData() {
       document.getElementById('conductorName').textContent = conductorData.name;
-      document.getElementById('busTitle').textContent = 'Bus: ' + busId;
-      document.getElementById('routeName').textContent = conductorData.route;
-      
-      // Load bus data from Firebase
-      loadBusData();
-      
-      // Load notifications
-      loadNotifications();
-      
-      // Initialize stats
-      updateStats();
+    }
+
+    // Refresh bus assignment
+    function refreshAssignment() {
+      db.ref('conductors/' + conductorId).once('value')
+        .then(snapshot => {
+          const updatedData = snapshot.val();
+          if (updatedData && updatedData.assignedBus) {
+            busId = updatedData.assignedBus;
+            conductorData = updatedData;
+            showBusAssignedUI();
+            showToast('Bus assignment updated: ' + busId, 'success');
+          } else {
+            showToast('No bus assignment found', 'info');
+          }
+        })
+        .catch(error => {
+          console.error('Error refreshing assignment:', error);
+          showToast('Error refreshing assignment', 'danger');
+        });
     }
 
     // Load bus data from Firebase
@@ -474,11 +538,12 @@
     function createBusData() {
       const busData = {
         vehicleType: 'Bus',
-        routeName: conductorData.route,
+        routeName: conductorData.route || 'Main Route',
         status: 'On Time',
         capacity: 50,
         companyName: 'City Transit',
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
+        conductorId: conductorId
       };
       
       db.ref("public_transport/vehicles/" + busId).set(busData)
@@ -515,6 +580,11 @@
 
     // Start automatic location tracking
     function startLocationTracking() {
+      if (!busId) {
+        showToast('No bus assigned to track location', 'warning');
+        return;
+      }
+      
       if (!navigator.geolocation) {
         showToast('Geolocation is not supported by your browser', 'danger');
         return;
@@ -624,7 +694,8 @@
         gps: `${latitude}, ${longitude}`,
         lastLocationUpdate: Date.now(),
         latitude: latitude,
-        longitude: longitude
+        longitude: longitude,
+        conductorId: conductorId
       };
       
       db.ref("public_transport/vehicles/" + busId).update(locationData)
@@ -652,6 +723,11 @@
 
     // Refresh location manually
     function refreshLocation() {
+      if (!busId) {
+        showToast('No bus assigned to track location', 'warning');
+        return;
+      }
+      
       if (!navigator.geolocation) {
         showToast('Geolocation not available', 'danger');
         return;
@@ -684,11 +760,15 @@
 
     // Update bus status
     function updateStatus(status) {
-      if (!busId) return;
+      if (!busId) {
+        showToast('No bus assigned to update status', 'warning');
+        return;
+      }
       
       db.ref("public_transport/vehicles/" + busId).update({
         status: status,
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
+        conductorId: conductorId
       }).then(() => {
         showToast(`Status updated to: ${status}`, 'success');
         updateStatusBadge(status);
@@ -771,6 +851,11 @@
 
     // Simulate QR code scanning
     function simulateQRScan() {
+      if (!busId) {
+        showToast('No bus assigned to verify tickets', 'warning');
+        return;
+      }
+      
       const ticketData = {
         ticketId: 'TKT-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
         passengerName: 'Passenger ' + Math.floor(Math.random() * 1000),
@@ -829,7 +914,27 @@
         ticketsChecked++;
         totalRevenue += ticketData.fare;
         updateStats();
+        
+        // Log ticket verification
+        logTicketVerification(ticketData);
       }
+    }
+
+    // Log ticket verification to Firebase
+    function logTicketVerification(ticketData) {
+      const verificationLog = {
+        ticketId: ticketData.ticketId,
+        passengerName: ticketData.passengerName,
+        conductorId: conductorId,
+        busId: busId,
+        verificationTime: Date.now(),
+        status: 'valid'
+      };
+      
+      db.ref('ticketVerifications/' + ticketData.ticketId).set(verificationLog)
+        .catch(error => {
+          console.error('Error logging ticket verification:', error);
+        });
     }
 
     // Update statistics
@@ -897,4 +1002,4 @@
     }
   </script>
 </body>
-            </html>
+</html>
